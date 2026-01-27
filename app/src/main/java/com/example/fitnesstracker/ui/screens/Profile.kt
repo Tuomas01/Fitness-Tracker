@@ -1,4 +1,4 @@
-package com.example.fitnesstracker
+package com.example.fitnesstracker.ui.screens
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,9 +9,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.fitnesstracker.R
 import com.example.fitnesstracker.ui.theme.FitnessTrackerTheme
 
-class MainActivity : ComponentActivity() {
+class Profile : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -21,7 +23,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Greeting(getString(R.string.app_name))
+                    GreetingProfile(getString(R.string.title_activity_profile))
                 }
             }
         }
@@ -29,19 +31,18 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(appName: String, modifier: Modifier = Modifier) {
+fun GreetingProfile(pageName: String, modifier: Modifier = Modifier) {
     Text(
-        text = "Hello $appName!",
+        text = "Hello $pageName!",
         modifier = modifier
     )
 }
 
-/**
+
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun GreetingPreview2() {
     FitnessTrackerTheme {
-        Greeting("Android")
+        GreetingProfile("Profile")
     }
 }
- */
