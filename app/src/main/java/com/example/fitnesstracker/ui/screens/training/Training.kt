@@ -1,4 +1,4 @@
-package com.example.fitnesstracker.ui.screens
+package com.example.fitnesstracker.ui.screens.training
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,21 +13,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.fitnesstracker.R
 import com.example.fitnesstracker.ui.theme.FitnessTrackerTheme
 
-class Training : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            FitnessTrackerTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    GreetingTraining(getString(R.string.title_activity_training))
-                }
-            }
-        }
-    }
+@Composable
+fun TrainingScreen() {
+    GreetingTraining("Testing Training page")
 }
 
 @Composable
