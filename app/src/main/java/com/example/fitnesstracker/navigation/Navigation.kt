@@ -20,6 +20,7 @@ import com.example.fitnesstracker.ui.screens.profile.ProfileScreen
 import com.example.fitnesstracker.ui.screens.training.TrainingScreen
 import androidx.navigation.compose.NavHost
 
+// Navigation host that is responsible for navigation between composables and connects routes from ScreenRoutes to composables
 @Composable
 fun AppNavHost(
     navController: NavHostController,
@@ -31,12 +32,16 @@ fun AppNavHost(
         composable(route = ScreenRoutes.TrainingScreen.route) { TrainingScreen() }
     }
 }
+// Bottom navigation bar composable that calls NavHost. This composable is called from MainActivity
 @Composable
 fun AppBottomNavigationBar(
     modifier: Modifier = Modifier,
     navController: NavHostController
 ) {
+    // Specifies where the application starts on when launched
     val startDestination = ScreenRoutes.HomeScreen
+    // Save the selected destination into a mutable object that creates an observable.
+    // This value will persists thanks to the rememberSaveable and highlights the currently selected view on the bottom navigation bar
     var selectedDestination by rememberSaveable { mutableIntStateOf(startDestination.ordinal) }
 
     Scaffold(

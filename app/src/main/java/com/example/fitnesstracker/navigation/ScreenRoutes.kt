@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.ui.graphics.vector.ImageVector
 
+// Routes are specified here
 enum class ScreenRoutes(
     val route: String,
     val label: String,

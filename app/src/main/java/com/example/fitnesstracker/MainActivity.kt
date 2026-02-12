@@ -17,6 +17,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            // Application's navigation controller, which is passed as an argument to the AppBottomNavigationBar
             val navController = rememberNavController()
             FitnessTrackerTheme {
                 // A surface container using the 'background' color from the theme
@@ -24,6 +25,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    // Application's bottom navigation bar that shows on all views
+                    // The other views are accessible through NavHost which the AppBottomNavigationBar composable calls
                     AppBottomNavigationBar(Modifier, navController)
                 }
             }
