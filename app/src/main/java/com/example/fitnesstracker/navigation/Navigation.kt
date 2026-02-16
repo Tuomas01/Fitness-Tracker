@@ -1,5 +1,6 @@
 package com.example.fitnesstracker.navigation
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -23,8 +24,7 @@ import androidx.navigation.compose.NavHost
 // Navigation host that is responsible for navigation between composables and connects routes from ScreenRoutes to composables
 @Composable
 fun AppNavHost(
-    navController: NavHostController,
-    modifier: Modifier = Modifier
+    navController: NavHostController
 ) {
     NavHost(navController, startDestination = ScreenRoutes.HomeScreen.route) {
         composable(route = ScreenRoutes.HomeScreen.route) { HomeScreen() }
@@ -67,6 +67,12 @@ fun AppBottomNavigationBar(
             }
         }
     ) { contentPadding ->
-        AppNavHost(navController, modifier = Modifier.padding(contentPadding))
+        // A column for AppNavHost composable to set padding on each page using the contentPadding.calculateBottomPadding() function.
+        // This makes it so that the bottom navigation bar doesn't overlap with the content on the page
+        Column(modifier = Modifier
+            .padding(bottom = contentPadding.calculateBottomPadding())
+        ) {
+            AppNavHost(navController)
+        }
     }
 }
