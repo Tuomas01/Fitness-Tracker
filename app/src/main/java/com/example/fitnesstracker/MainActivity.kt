@@ -12,8 +12,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.fitnesstracker.navigation.AppBottomNavigationBar
 import com.example.fitnesstracker.ui.theme.FitnessTrackerTheme
+import io.github.jan.supabase.SupabaseClient
+import javax.inject.Inject
 
 class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var supabaseClient: SupabaseClient
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

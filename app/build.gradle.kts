@@ -1,9 +1,26 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+
     // Kotlin serialization plugin for type safe routes and navigation arguments
-    kotlin("plugin.serialization") version "1.8.0"
+    kotlin("plugin.serialization") version "2.0.20"
+
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.dagger.hilt.android")
 }
+
+// Defines the secret.properties file containing secrets
+val secretFile = rootProject.file("secret.properties")
+
+// Initializes a new Properties() object
+val properties = Properties()
+
+// Loads the secret.properties file into the properties object
+properties.load(FileInputStream(secretFile))
 
 android {
     namespace = "com.example.fitnesstracker"
@@ -11,12 +28,17 @@ android {
 
     defaultConfig {
         applicationId = "com.example.fitnesstracker"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Uses the previously defined properties object that has the secret.properties file loaded into it to access the secrets
+        buildConfigField("String", "sb_publishable_key", "\"${properties.getProperty("sb_publishable_key")}\"")
+        buildConfigField("String", "sb_URL", "\"${properties.getProperty("sb_URL")}\"")
+
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -40,9 +62,9 @@ android {
     }
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+
+        // Enables buildConfig, so that the application can access the property object's secrets
+        buildConfig = true
     }
     packaging {
         resources {
@@ -52,6 +74,9 @@ android {
 }
 
 dependencies {
+
+    val supabaseVersion = "3.0.0"
+    val ktorVersion = "3.1.0"
 
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
@@ -64,6 +89,21 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.navigation:navigation-compose:2.8.9")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
+    // Supabase dependencies
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:${supabaseVersion}")
+    implementation("io.github.jan-tennert.supabase:storage-kt:${supabaseVersion}")
+    implementation("io.github.jan-tennert.supabase:auth-kt:${supabaseVersion}")
+    implementation("io.ktor:ktor-client-android:${ktorVersion}")
+    implementation("io.ktor:ktor-client-core:${ktorVersion}")
+    implementation("io.ktor:ktor-utils:${ktorVersion}")
+
+    // Hilt dependencies
+    val hiltVersion = "2.57.1"
+    implementation("com.google.dagger:hilt-android:$hiltVersion")
+    annotationProcessor("com.google.dagger:hilt-compiler:$hiltVersion")
+    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
+
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

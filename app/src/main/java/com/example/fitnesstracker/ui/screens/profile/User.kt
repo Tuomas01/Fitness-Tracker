@@ -1,7 +1,11 @@
 package com.example.fitnesstracker.ui.screens.profile
 
+import kotlinx.serialization.Serializable
+
 // Data class for the user's information
-data class UserState(
+@Serializable
+data class User(
+    val id: Int = 1,
     val name: String = "",
     val email : String = "",
     val gender : String = "",
