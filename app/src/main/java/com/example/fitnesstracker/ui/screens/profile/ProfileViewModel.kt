@@ -43,21 +43,28 @@ class ProfileViewModel() : ViewModel() {
     }*/
 
     // Functions for updating userState, which in return updates the text fields in real time
+    // Functions for clearing the text field when user taps on it
 
     fun updateName(newName: String) {
         _userState.update { it.copy(name = newName) }
         //println("Testing StateFlow: ${_userState.value.name}")
     }
+    fun clearName() = _userState.update { it.copy(name = "") }
 
     fun updateEmail(newEmail: String) = _userState.update { it.copy(email = newEmail) }
+    fun clearEmail() = _userState.update { it.copy(email = "") }
 
     fun updateGender(newGender: String) = _userState.update { it.copy(gender = newGender) }
+    fun clearGender() = _userState.update { it.copy(gender = "") }
 
     fun updateAge(newAge: String) = _userState.update { it.copy(age = newAge) }
+    fun clearAge() = _userState.update { it.copy(age = "") }
 
     fun updateHeight(newHeight: String) = _userState.update { it.copy(height = newHeight) }
+    fun clearHeight() = _userState.update { it.copy(height = "") }
 
     fun updateWeight(newWeight: String) = _userState.update { it.copy(weight = newWeight) }
+    fun clearWeight() = _userState.update { it.copy(weight = "") }
 
     // Adds conditional checks to text field values, so that the app doesn't crash if the value is empty
     // An example of this is if the user deletes a value, the app would crash but with the conditional check, the app doesn't crash

@@ -48,16 +48,36 @@ fun ProfileTextFields(
         OutlinedTextField(
             value = userState.name,
             onValueChange = { viewModel.updateName(it) },
-            label = { Text("Name") }
+            label = { Text("Name") },
+            maxLines = 1,
+            modifier = Modifier.pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(pass = PointerEventPass.Initial)
+                    val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                    if (upEvent != null) {
+                        viewModel.clearName()
+                    }
+                }
+            }
         )
 
         OutlinedTextField(
             value = userState.email,
             onValueChange = { viewModel.updateEmail(it) },
             label = { Text("Email") },
+            maxLines = 1,
+            modifier = Modifier.pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(pass = PointerEventPass.Initial)
+                    val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                    if (upEvent != null) {
+                        viewModel.clearEmail()
+                    }
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email
-            )
+            ),
         )
 
         // A read only text field for the gender picker. Changes the openDialogRadio value to show the dialog on press
@@ -66,12 +86,14 @@ fun ProfileTextFields(
             value = userState.gender,
             onValueChange = { viewModel.updateGender(it) },
             label = { Text("Gender") },
+            maxLines = 1,
             readOnly = true,
             modifier = Modifier.pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown(pass = PointerEventPass.Initial)
                     val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
                     if (upEvent != null) {
+                        viewModel.clearGender()
                         openDialogRadio.value = !openDialogRadio.value
                     }
                 }
@@ -82,33 +104,63 @@ fun ProfileTextFields(
             value = userState.age,
             onValueChange = { viewModel.updateAge(it) },
             label = { Text("Age") },
+            maxLines = 1,
+            modifier = Modifier.pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(pass = PointerEventPass.Initial)
+                    val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                    if (upEvent != null) {
+                        viewModel.clearAge()
+                    }
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number
-            )
+            ),
         )
 
         OutlinedTextField(
             value = userState.height,
             onValueChange = { viewModel.updateHeight(it) },
             label = { Text("Height") },
+            maxLines = 1,
+            suffix = {
+                Text(text = "cm")
+            },
+            modifier = Modifier.pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(pass = PointerEventPass.Initial)
+                    val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                    if (upEvent != null) {
+                        viewModel.clearHeight()
+                    }
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number
             ),
-            suffix = {
-                Text(text = "cm")
-            }
         )
 
         OutlinedTextField(
             value = userState.weight,
             onValueChange = { viewModel.updateWeight(it) },
             label = { Text("Weight") },
+            maxLines = 1,
+            suffix = {
+                Text(text = "kg")
+            },
+            modifier = Modifier.pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(pass = PointerEventPass.Initial)
+                    val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                    if (upEvent != null) {
+                        viewModel.clearWeight()
+                    }
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number
             ),
-            suffix = {
-                Text(text = "kg")
-            }
         )
     }
 }

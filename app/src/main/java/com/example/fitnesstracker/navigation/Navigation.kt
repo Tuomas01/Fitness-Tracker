@@ -34,7 +34,7 @@ fun AppNavHost(
 }
 // Bottom navigation bar composable that calls NavHost. This composable is called from MainActivity
 @Composable
-fun AppBottomNavigationBar(
+fun AppNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController
 ) {
@@ -69,8 +69,9 @@ fun AppBottomNavigationBar(
     ) { contentPadding ->
         // A column for AppNavHost composable to set padding on each page using the contentPadding.calculateBottomPadding() function.
         // This makes it so that the bottom navigation bar doesn't overlap with the content on the page
-        Column(modifier = Modifier
-            .padding(bottom = contentPadding.calculateBottomPadding())
+        Column(
+            modifier = Modifier
+                .padding(bottom = contentPadding.calculateBottomPadding())
         ) {
             AppNavHost(navController)
         }
