@@ -1,5 +1,6 @@
 package com.example.fitnesstracker.ui.screens.profile
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,14 +34,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.example.fitnesstracker.ui.screens.authentication.AuthViewModel
-import com.example.fitnesstracker.ui.theme.FitnessTrackerTheme
-import kotlinx.coroutines.launch
 
 // Profile screen view
 @Composable
@@ -126,10 +126,9 @@ fun DialogRadio(
 
 @Composable
 fun ProfileIcon(
-    viewModel: AuthViewModel = viewModel()
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
-    val coroutineScope = rememberCoroutineScope()
-    val loggedIn by viewModel.isLoggedIn.collectAsState()
+    val activity = (LocalContext.current as? Activity)
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -138,7 +137,8 @@ fun ProfileIcon(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
                 .align(Alignment.Center)
         ) {
             Icon(
@@ -157,11 +157,8 @@ fun ProfileIcon(
         ) {
             IconButton(
                 onClick = {
-                    println("testing signout before: $loggedIn")
-                    coroutineScope.launch {
-                        viewModel.signOut()
-                    }
-                    println("testing signout after: $loggedIn")
+                    viewModel.signOut()
+                    activity?.finish()
                 },
                 modifier = Modifier
             ) {
@@ -171,13 +168,5 @@ fun ProfileIcon(
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview2() {
-    FitnessTrackerTheme {
-        ProfileScreen()
     }
 }

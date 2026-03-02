@@ -7,12 +7,13 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
 import javax.inject.Singleton
 
-/*@InstallIn(SingletonComponent::class)
+@InstallIn(SingletonComponent::class)
 @Module
 object SupabaseModule {
 
@@ -24,6 +25,7 @@ object SupabaseModule {
             supabaseKey = BuildConfig.sb_publishable_key
         ) {
             install(Postgrest)
+            install(Auth)
         }
     }
 
@@ -32,12 +34,10 @@ object SupabaseModule {
     fun provideSupabaseDatabase(client: SupabaseClient): Postgrest {
         return client.postgrest
     }
-}*/
 
-val supabase = createSupabaseClient(
-    supabaseUrl = BuildConfig.sb_URL,
-    supabaseKey = BuildConfig.sb_publishable_key
-) {
-    install(Postgrest)
-    install(Auth)
+    @Provides
+    @Singleton
+    fun provideSupabaseAuth(client: SupabaseClient): Auth {
+        return client.auth
+    }
 }

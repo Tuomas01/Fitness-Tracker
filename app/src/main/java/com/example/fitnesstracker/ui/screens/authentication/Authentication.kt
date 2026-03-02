@@ -1,5 +1,7 @@
 package com.example.fitnesstracker.ui.screens.authentication
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,20 +20,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun AuthenticationScreen(
-    viewModel: AuthViewModel = viewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    context: Context
 ) {
     val coroutineScope = rememberCoroutineScope()
     val email by viewModel.email.collectAsState()
-    val password by viewModel.password.collectAsState()
-    val passwordlessAuth by viewModel.passwordlessAuth.collectAsState()
+    //val password by viewModel.password.collectAsState()
+    //val passwordlessAuth by viewModel.passwordlessAuth.collectAsState()
 
     val openTokenDialog = remember { mutableStateOf(false) }
     when {
@@ -40,7 +44,8 @@ fun AuthenticationScreen(
                 onDismissRequest = { openTokenDialog.value = false },
                 onConfirmation = {
                     openTokenDialog.value = false
-                }
+                },
+                context = context
             )
         }
     }
@@ -59,7 +64,7 @@ fun AuthenticationScreen(
             maxLines = 1,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (!passwordlessAuth) {
+        /*if (!passwordlessAuth) {
             OutlinedTextField(
                 value = password,
                 onValueChange = {
@@ -70,7 +75,7 @@ fun AuthenticationScreen(
                 modifier = Modifier
                     .fillMaxWidth(),
             )
-        }
+        }*/
         val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
         Button(
             modifier = Modifier
@@ -78,17 +83,19 @@ fun AuthenticationScreen(
                 .padding(top = 12.dp),
             onClick = {
                 localSoftwareKeyboardController?.hide()
-                if (passwordlessAuth) {
+                openTokenDialog.value = !openTokenDialog.value
+                viewModel.authenticateWithOtp()
+                /*if (passwordlessAuth) {
                     openTokenDialog.value = !openTokenDialog.value
                 } else {
                     coroutineScope.launch {
                         viewModel.authenticateUser()
                     }
-                }
+                }*/
             }) {
             Text("Sign in")
         }
-        Button(
+        /*Button(
             modifier = Modifier
                 .fillMaxWidth(),
             onClick = {
@@ -96,7 +103,7 @@ fun AuthenticationScreen(
             }
         ) {
             Text("Alternative authentication method")
-        }
+        }*/
     }
 }
 
@@ -104,9 +111,11 @@ fun AuthenticationScreen(
 fun TokenDialog(
     onDismissRequest: () -> Unit,
     onConfirmation: () -> Unit,
-    viewModel: AuthViewModel = viewModel()
+    context: Context,
+    viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val otpToken by viewModel.otpToken.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -121,7 +130,7 @@ fun TokenDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Please input the code from email here",
+                    text = "An OTP code has been sent to your email, please input the code here.",
                     modifier = Modifier
                         .padding(16.dp, 16.dp, 16.dp, 0.dp)
                 )
@@ -138,9 +147,18 @@ fun TokenDialog(
                 )
                 Button(
                     onClick = {
-                        onConfirmation()
                         coroutineScope.launch {
-                            viewModel.authenticateUser()
+                            viewModel.verifyOtp()
+                        }
+                        viewModel.getSession()
+                        if (isLoggedIn) {
+                            onConfirmation()
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "OTP was incorrect, please enter the value again",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     },
                     modifier = Modifier

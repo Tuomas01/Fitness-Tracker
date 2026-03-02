@@ -9,17 +9,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.fitnesstracker.navigation.AppNavigation
 import com.example.fitnesstracker.ui.screens.authentication.AuthViewModel
 import com.example.fitnesstracker.ui.screens.authentication.AuthenticationScreen
 import com.example.fitnesstracker.ui.theme.FitnessTrackerTheme
+import dagger.hilt.android.AndroidEntryPoint
 import io.github.jan.supabase.SupabaseClient
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var supabaseClient: SupabaseClient
@@ -29,29 +34,26 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Application's navigation controller, which is passed as an argument to the AppBottomNavigationBar
             val navController = rememberNavController()
-            val authViewModel: AuthViewModel = viewModel()
+            val authViewModel: AuthViewModel = hiltViewModel()
+
             val loggedIn by authViewModel.isLoggedIn.collectAsState()
+
             FitnessTrackerTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Application's bottom navigation bar that shows on all views
-                    // The other views are accessible through NavHost which the AppBottomNavigationBar composable calls
                     if (loggedIn) {
-                        AppNavigation(Modifier, navController)
+                        // Application's bottom navigation bar that shows on all views
+                        // The other views are accessible through NavHost which the AppNavigation composable calls
+                        AppNavigation(Modifier, navController, this)
                     } else {
-                        AuthenticationScreen()
+                        // Show the authentication screen instead if no active session was found (user is not logged in)
+                        AuthenticationScreen(context = this)
                     }
                 }
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun ComposablePreview() {
-    AppNavigation(Modifier, navController = rememberNavController())
 }

@@ -1,5 +1,6 @@
 package com.example.fitnesstracker.navigation
 
+import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -20,13 +21,23 @@ import com.example.fitnesstracker.ui.screens.home.HomeScreen
 import com.example.fitnesstracker.ui.screens.profile.ProfileScreen
 import com.example.fitnesstracker.ui.screens.training.TrainingScreen
 import androidx.navigation.compose.NavHost
+import androidx.navigation.navigation
+import com.example.fitnesstracker.ui.screens.authentication.AuthenticationScreen
 
 // Navigation host that is responsible for navigation between composables and connects routes from ScreenRoutes to composables
 @Composable
 fun AppNavHost(
-    navController: NavHostController
+    navController: NavHostController,
+    context: Context
 ) {
     NavHost(navController, startDestination = ScreenRoutes.HomeScreen.route) {
+        // Nested navigation graph for authentication
+        navigation(
+            startDestination = AuthScreenRoute.AuthScreen.route,
+            route = "auth"
+        ) {
+            composable(route = AuthScreenRoute.AuthScreen.route) { AuthenticationScreen(context = context) }
+        }
         composable(route = ScreenRoutes.HomeScreen.route) { HomeScreen() }
         composable(route = ScreenRoutes.ProfileScreen.route) { ProfileScreen() }
         composable(route = ScreenRoutes.TrainingScreen.route) { TrainingScreen() }
@@ -36,7 +47,8 @@ fun AppNavHost(
 @Composable
 fun AppNavigation(
     modifier: Modifier = Modifier,
-    navController: NavHostController
+    navController: NavHostController,
+    context: Context
 ) {
     // Specifies where the application starts on when launched
     val startDestination = ScreenRoutes.HomeScreen
@@ -73,7 +85,7 @@ fun AppNavigation(
             modifier = Modifier
                 .padding(bottom = contentPadding.calculateBottomPadding())
         ) {
-            AppNavHost(navController)
+            AppNavHost(navController, context)
         }
     }
 }

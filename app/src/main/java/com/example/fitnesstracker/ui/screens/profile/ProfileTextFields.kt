@@ -19,13 +19,14 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 // Composable that shows text fields where user can view and change their information
 // Uses the viewmodel passed as an argument to handle user information. Logic for this can be found in the ProfileViewModel
 @Composable
 fun ProfileTextFields(
-    viewModel: ProfileViewModel = viewModel()
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val userState by viewModel.userState.collectAsState()
     // Handles showing the gender picker dialog

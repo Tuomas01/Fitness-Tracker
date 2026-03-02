@@ -17,3 +17,11 @@ enum class ScreenRoutes(
     HomeScreen("home_screen", "Home", Icons.Default.Home, "Home screen"),
     ProfileScreen("profile_screen", "Profile", Icons.Default.AccountCircle, "Profile screen")
 }
+
+enum class AuthScreenRoute(
+    val route: String,
+    val label: String,
+    val contentDescription: String
+) {
+    AuthScreen("authentication_screen", "Authentication", "Authentication screen")
+}

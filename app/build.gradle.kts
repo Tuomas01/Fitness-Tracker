@@ -11,6 +11,7 @@ plugins {
 
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
 }
 
 // Defines the secret.properties file containing secrets
@@ -101,7 +102,7 @@ dependencies {
     // Hilt dependencies
     val hiltVersion = "2.57.1"
     implementation("com.google.dagger:hilt-android:$hiltVersion")
-    annotationProcessor("com.google.dagger:hilt-compiler:$hiltVersion")
+    ksp("com.google.dagger:hilt-android-compiler:$hiltVersion")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
 
     testImplementation("junit:junit:4.13.2")

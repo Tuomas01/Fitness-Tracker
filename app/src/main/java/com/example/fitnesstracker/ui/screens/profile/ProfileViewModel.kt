@@ -1,17 +1,24 @@
 package com.example.fitnesstracker.ui.screens.profile
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fitnesstracker.supabase.supabase
-import io.github.jan.supabase.postgrest.from
+import com.example.fitnesstracker.supabase.AuthRepository
+import com.example.fitnesstracker.supabase.UserRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 // Handles all the data related to the user's information and the profile page
-class ProfileViewModel() : ViewModel() {
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
+    private val userRepository: UserRepository,
+    private val authRepository: AuthRepository
+) : ViewModel() {
 
     // Uses stateflow to persist and handle user information
     // UserState is a data class that has all the user information fields
@@ -22,25 +29,41 @@ class ProfileViewModel() : ViewModel() {
     // The ProfileTextFields composable uses this variable for default and updated values for the text fields
     val userState: StateFlow<User> = _userState.asStateFlow()
 
+    private val _loggedInEmail = MutableStateFlow("")
+    val loggedInEmail: StateFlow<String> = _loggedInEmail.asStateFlow()
+
     init {
-        getUsers()
+        viewModelScope.launch {
+            getSessionEmail()
+            getUser(_loggedInEmail.value)
+        }
     }
 
     fun getUsers() {
         viewModelScope.launch {
-            val user = supabase.from("User")
-                .select().decodeList<User>()
-            println("Testing supabase: $user \n name: ${user[0].name}")
-            _userState.emit(user[0])
+            userRepository.getUsers()
         }
     }
 
-    /*fun getUser() {
+    fun getUser(email: String) {
         viewModelScope.launch {
-            val user = userRepository.getUser("1")
+            val user = userRepository.getUser(email)
+            Log.d("ProfileVM", "Testing getUser: $user")
             _userState.emit(user)
         }
-    }*/
+    }
+
+    fun getSessionEmail() {
+        viewModelScope.launch {
+            val sessionEmail = authRepository.retrieveSession()
+            Log.d("ProfileVM", "getSessionEmail test: $sessionEmail")
+            if (sessionEmail !== null) {
+                _loggedInEmail.value = sessionEmail
+            } else {
+                Log.d("ProfileVM", "getSessionEmail: no active session found")
+            }
+        }
+    }
 
     // Functions for updating userState, which in return updates the text fields in real time
     // Functions for clearing the text field when user taps on it
@@ -65,35 +88,4 @@ class ProfileViewModel() : ViewModel() {
 
     fun updateWeight(newWeight: String) = _userState.update { it.copy(weight = newWeight) }
     fun clearWeight() = _userState.update { it.copy(weight = "") }
-
-    // Adds conditional checks to text field values, so that the app doesn't crash if the value is empty
-    // An example of this is if the user deletes a value, the app would crash but with the conditional check, the app doesn't crash
-    /*fun updateAge(newAge: String) {
-        if (!newAge.isEmpty()) {
-            println("newAge: $newAge")
-            _userState.update {
-                it.copy(age = newAge.toInt())
-            }
-        } else {
-            println("newAge is empty: $newAge")
-        }
-    }
-
-    fun updateHeight(newHeight: String) {
-        if (!newHeight.isEmpty()) {
-            println("newHeight: $newHeight")
-            _userState.update { it.copy(height = newHeight.toInt()) }
-        } else {
-            println("newHeight is empty: $newHeight")
-        }
-    }
-
-    fun updateWeight(newWeight: String) {
-        if (!newWeight.isEmpty()) {
-            println("newWeight: $newWeight")
-            _userState.update { it.copy(weight = newWeight.toInt()) }
-        } else {
-            println("newWeight is empty: $newWeight")
-        }
-    }*/
 }
