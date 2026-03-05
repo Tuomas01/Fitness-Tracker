@@ -30,7 +30,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun AuthenticationScreen(
     viewModel: AuthViewModel = hiltViewModel(),
-    context: Context
+    context: Context,
+    // Function for navigating to the home screen from the authentication screen
+    // Needed because the user signs out from the profile page and the app remembers this
+    onNavigate: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val email by viewModel.email.collectAsState()
@@ -45,6 +48,7 @@ fun AuthenticationScreen(
                 onConfirmation = {
                     openTokenDialog.value = false
                 },
+                onNavigate = onNavigate,
                 context = context
             )
         }
@@ -111,6 +115,7 @@ fun AuthenticationScreen(
 fun TokenDialog(
     onDismissRequest: () -> Unit,
     onConfirmation: () -> Unit,
+    onNavigate: () -> Unit,
     context: Context,
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
@@ -150,9 +155,9 @@ fun TokenDialog(
                         coroutineScope.launch {
                             viewModel.verifyOtp()
                         }
-                        viewModel.getSession()
                         if (isLoggedIn) {
                             onConfirmation()
+                            onNavigate()
                         } else {
                             Toast.makeText(
                                 context,

@@ -29,6 +29,12 @@ class ProfileViewModel @Inject constructor(
     // The ProfileTextFields composable uses this variable for default and updated values for the text fields
     val userState: StateFlow<User> = _userState.asStateFlow()
 
+    // Another userState variable that holds user's data from the database.
+    // These values won't get overridden by the text fields being empty.
+    // This data will be used instead if the user tries to update their information by leaving the fields empty
+    private val _userStateFromDb = MutableStateFlow(User())
+    val userStateFromDb: StateFlow<User> = _userStateFromDb.asStateFlow()
+
     private val _loggedInEmail = MutableStateFlow("")
     val loggedInEmail: StateFlow<String> = _loggedInEmail.asStateFlow()
 
@@ -50,6 +56,7 @@ class ProfileViewModel @Inject constructor(
             val user = userRepository.getUser(email)
             Log.d("ProfileVM", "Testing getUser: $user")
             _userState.emit(user)
+            _userStateFromDb.emit(user)
         }
     }
 
@@ -65,13 +72,60 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    fun updateUser() {
+        // Check if the text fields are empty and if they are add user's information from database to the _userState object
+        // This should be improved to make it cleaner.
+        // Instead of using multiple if checks there has to be a way to iterate through all the _userState values
+        if (_userState.value.name.isEmpty()) {
+            _userState.update { it.copy(name = _userStateFromDb.value.name) }
+        }
+
+        if (_userState.value.email.isEmpty()) {
+            _userState.update { it.copy(email = _userStateFromDb.value.email) }
+        }
+
+        if (_userState.value.age.isEmpty()) {
+            _userState.update { it.copy(age = _userStateFromDb.value.age) }
+        }
+
+        if (_userState.value.gender.isEmpty()) {
+            _userState.update { it.copy(gender = _userStateFromDb.value.gender) }
+        }
+
+        if (_userState.value.height.isEmpty()) {
+            _userState.update { it.copy(height = _userStateFromDb.value.height) }
+        }
+
+        if (_userState.value.weight.isEmpty()) {
+            _userState.update { it.copy(weight = _userStateFromDb.value.weight) }
+        }
+
+        // Calls the userRepository's updateUser() function to update the user information in the database
+        viewModelScope.launch {
+            try {
+                val response = userRepository.updateUser(
+                    currentEmail = _loggedInEmail.value,
+                    name = _userState.value.name,
+                    email = _userState.value.email,
+                    gender = _userState.value.gender,
+                    age = _userState.value.age,
+                    height = _userState.value.height,
+                    weight = _userState.value.weight
+                )
+                Log.d("ProfileVm", "updateUser() test: $response")
+            } catch (e: Exception) {
+                Log.d("ProfileVm", "updateUser() error: $e")
+            }
+        }
+    }
+
     // Functions for updating userState, which in return updates the text fields in real time
     // Functions for clearing the text field when user taps on it
-
     fun updateName(newName: String) {
         _userState.update { it.copy(name = newName) }
         //println("Testing StateFlow: ${_userState.value.name}")
     }
+
     fun clearName() = _userState.update { it.copy(name = "") }
 
     fun updateEmail(newEmail: String) = _userState.update { it.copy(email = newEmail) }

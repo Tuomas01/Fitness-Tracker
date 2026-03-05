@@ -23,6 +23,8 @@ import com.example.fitnesstracker.ui.screens.training.TrainingScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.navigation
 import com.example.fitnesstracker.ui.screens.authentication.AuthenticationScreen
+import com.example.fitnesstracker.ui.screens.authentication.InitializingScreen
+import com.example.fitnesstracker.ui.screens.profile.UpdateUserScreen
 
 // Navigation host that is responsible for navigation between composables and connects routes from ScreenRoutes to composables
 @Composable
@@ -36,13 +38,29 @@ fun AppNavHost(
             startDestination = AuthScreenRoute.AuthScreen.route,
             route = "auth"
         ) {
-            composable(route = AuthScreenRoute.AuthScreen.route) { AuthenticationScreen(context = context) }
+            composable(route = AuthScreenRoute.AuthScreen.route) {
+                AuthenticationScreen(
+                    context = context,
+                    onNavigate = {
+                        navController.navigate(route = ScreenRoutes.HomeScreen.route)
+                    }
+                )
+            }
+            composable(route = AuthScreenRoute.InitializingScreen.route) { InitializingScreen() }
         }
         composable(route = ScreenRoutes.HomeScreen.route) { HomeScreen() }
-        composable(route = ScreenRoutes.ProfileScreen.route) { ProfileScreen() }
+        composable(route = ScreenRoutes.ProfileScreen.route) {
+            ProfileScreen(
+                onNavigate = {
+                    navController.navigate(route = ScreenRoutes.UpdateUserScreen.route)
+                }
+            )
+        }
         composable(route = ScreenRoutes.TrainingScreen.route) { TrainingScreen() }
+        composable(route = ScreenRoutes.UpdateUserScreen.route) { UpdateUserScreen() }
     }
 }
+
 // Bottom navigation bar composable that calls NavHost. This composable is called from MainActivity
 @Composable
 fun AppNavigation(
@@ -61,20 +79,23 @@ fun AppNavigation(
         bottomBar = {
             NavigationBar(windowInsets = NavigationBarDefaults.windowInsets) {
                 ScreenRoutes.entries.forEachIndexed { index, screenRoute ->
-                    NavigationBarItem(
-                        selected = selectedDestination == index,
-                        onClick = {
-                            navController.navigate(route = screenRoute.route)
-                            selectedDestination = index
-                        },
-                        icon = {
-                            Icon(
-                                screenRoute.icon,
-                                contentDescription = screenRoute.contentDescription
-                            )
-                        },
-                        label = { Text(screenRoute.label) }
-                    )
+                    // Excludes the updateUser screen from the bottom bar
+                    if (screenRoute.route !== ScreenRoutes.UpdateUserScreen.route) {
+                        NavigationBarItem(
+                            selected = selectedDestination == index,
+                            onClick = {
+                                navController.navigate(route = screenRoute.route)
+                                selectedDestination = index
+                            },
+                            icon = {
+                                Icon(
+                                    screenRoute.icon,
+                                    contentDescription = screenRoute.contentDescription
+                                )
+                            },
+                            label = { Text(screenRoute.label) }
+                        )
+                    }
                 }
             }
         }

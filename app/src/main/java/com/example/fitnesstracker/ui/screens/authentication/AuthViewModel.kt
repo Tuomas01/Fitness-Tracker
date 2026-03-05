@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fitnesstracker.supabase.AuthRepository
 import com.example.fitnesstracker.ui.screens.profile.User
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.auth.user.UserSession
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,8 +35,12 @@ class AuthViewModel @Inject constructor(
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
+    private val _sessionState = MutableStateFlow<SessionStatus?>(null)
+    val sessionState: StateFlow<SessionStatus?> = _sessionState.asStateFlow()
+
     init {
         getSession()
+        //getSessionStatus()
     }
 
     fun updateEmail(newEmail: String) {
@@ -73,23 +78,31 @@ class AuthViewModel @Inject constructor(
                         otp = _otpToken.value
                     )
                 }
+                _isLoggedIn.value = true
             } catch (e: Exception) {
-                Log.d("AuthVM", "verifyOtp error: $e")
+                Log.d("AuthVM", "verifyOtp() error: $e")
+                _isLoggedIn.value = false
             }
         } else {
             Log.d("AuthVM", "Email and OTP token have not been filled in")
+            _isLoggedIn.value = false
         }
     }
 
     fun getSession() {
         // Auth repository returns email from the session's user data if a session is active and null if a session was not found
         val session = authRepository.retrieveSession()
-        Log.d("AuthVM", "getSession test: $session")
-        // Assigns a boolean value to the isLoggedIn variable based on if there is an active session or not
-        if (session === null) {
-            _isLoggedIn.value = false
-        } else {
-            _isLoggedIn.value = true
+        Log.d("AuthVM", "getSession() test: $session")
+        // Assigns a boolean value to the _isLoggedIn variable based on if there is an active session or not
+    }
+
+    fun getSessionStatus() {
+        try {
+            val sessionStatus = authRepository.retrieveSessionStatus()
+            _sessionState.value = sessionStatus
+            Log.d("AuthVm", "getSessionStatus(): $sessionStatus")
+        } catch (e: Exception) {
+            Log.d("AuthVm", "getSessionStatus() error: $e")
         }
     }
 

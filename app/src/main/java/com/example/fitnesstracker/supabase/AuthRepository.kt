@@ -1,13 +1,16 @@
 package com.example.fitnesstracker.supabase
 
 import android.util.Log
+import androidx.compose.runtime.collectAsState
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.OtpType
+import io.github.jan.supabase.auth.SignOutScope
 import io.github.jan.supabase.auth.providers.builtin.OTP
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
 import javax.inject.Inject
 
@@ -16,6 +19,7 @@ interface AuthRepository {
     suspend fun authenticateWithOtp(userEmail: String)
     suspend fun verifyOtp(userEmail: String, otp: String)
     fun retrieveSession(): String?
+    fun retrieveSessionStatus(): SessionStatus?
     suspend fun signOut()
 }
 
@@ -34,9 +38,9 @@ class AuthRepositoryImpl @Inject constructor(
             val response = auth.signInWith(OTP) {
                 email = userEmail
             }
-            Log.d("AuthRepo", "authenticateWithOtp test: $response")
+            Log.d("AuthRepo", "authenticateWithOtp() test: $response")
         } catch (e: Exception) {
-            Log.d("AuthRepo", "authenticateWithOtp error: $e")
+            Log.d("AuthRepo", "authenticateWithOtp() error: $e")
         }
     }
 
@@ -49,9 +53,9 @@ class AuthRepositoryImpl @Inject constructor(
                 email = userEmail,
                 token = otp
             )
-            Log.d("AuthRepo", "verifyOtp test: $response")
+            Log.d("AuthRepo", "verifyOtp() test: $response")
         } catch (e: Exception) {
-            Log.d("AuthRepo", "verifyOtp error: $e")
+            Log.d("AuthRepo", "verifyOtp() error: $e")
         }
     }
 
@@ -59,7 +63,7 @@ class AuthRepositoryImpl @Inject constructor(
     // Returns the user's email from the session data or null if no session was found
     override fun retrieveSession(): String? {
         val session = auth.currentSessionOrNull()
-        Log.d("AuthRepo", "retrieveSession test: $session")
+        Log.d("AuthRepo", "retrieveSession() test: $session")
         if (session !== null) {
             return session.user?.email
         } else {
@@ -67,13 +71,30 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    // Retrieves the session status.
+    // Gives more detailed information about the state of session.
+    // For example, the session status can be used to check if the application is busy loading the session from storage
+    // and that way the application can display a loading screen to the user.
+    // Returns the session status or Null if no session was found
+    override fun retrieveSessionStatus(): SessionStatus? {
+        try {
+            val sessionStatus = auth.sessionStatus.value
+            Log.d("AuthRepo", "retrieveSessionState() test: $sessionStatus")
+            return sessionStatus
+        } catch (e: Exception) {
+            Log.d("AuthRepo", "retrieveSessionStatus() error: $e")
+            return null
+        }
+    }
+
     // Signs the user out
     override suspend fun signOut() {
         try {
-            val response = auth.signOut()
-            Log.d("AuthRepo", "signOut test: $response")
+            // Signs out the user from all sessions
+            val response = auth.signOut(SignOutScope.GLOBAL)
+            Log.d("AuthRepo", "signOut() test: $response")
         } catch (e: Exception) {
-            Log.d("AuthRepo", "signOut error: $e")
+            Log.d("AuthRepo", "signOut() error: $e")
         }
     }
 }

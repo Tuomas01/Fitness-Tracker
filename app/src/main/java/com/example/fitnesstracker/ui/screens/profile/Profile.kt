@@ -1,6 +1,7 @@
 package com.example.fitnesstracker.ui.screens.profile
 
 import android.app.Activity
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,35 +29,38 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavHostController
 import com.example.fitnesstracker.ui.screens.authentication.AuthViewModel
 
 // Profile screen view
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    onNavigate: () -> Unit
+) {
     // Creates a new viewmodel that is being passed to the UserTextFields composable
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .wrapContentSize()
-            .verticalScroll(rememberScrollState()),
+            .wrapContentSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
         ProfileIcon()
-        ProfileTextFields()
+        Button(
+            onClick = {
+                onNavigate()
+            }
+        ) {
+            Text("Update user")
+        }
     }
 }
 
@@ -132,13 +137,12 @@ fun ProfileIcon(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .align(Alignment.Center)
         ) {
             Icon(
@@ -158,7 +162,7 @@ fun ProfileIcon(
             IconButton(
                 onClick = {
                     viewModel.signOut()
-                    activity?.finish()
+                    //activity?.finish()
                 },
                 modifier = Modifier
             ) {
