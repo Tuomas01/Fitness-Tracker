@@ -5,20 +5,35 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -85,7 +100,7 @@ fun ProfileTextFields(
         // Onclick function wouldn't work on the modifier so that is why the text field is using pointerInput instead to handle user press
         OutlinedTextField(
             value = userState.gender,
-            onValueChange = { viewModel.updateGender(it) },
+            onValueChange = { viewModel.updateGender() },
             label = { Text("Gender") },
             maxLines = 1,
             readOnly = true,
@@ -94,7 +109,6 @@ fun ProfileTextFields(
                     awaitFirstDown(pass = PointerEventPass.Initial)
                     val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
                     if (upEvent != null) {
-                        viewModel.clearGender()
                         openDialogRadio.value = !openDialogRadio.value
                     }
                 }
@@ -163,5 +177,83 @@ fun ProfileTextFields(
                 keyboardType = KeyboardType.Number
             ),
         )
+    }
+}
+
+
+// Radio button for selecting gender
+@Composable
+fun GenderRadioButtons(
+    modifier: Modifier = Modifier,
+    viewModel: ProfileViewModel = hiltViewModel()
+) {
+    val user = viewModel.userState.collectAsState()
+    val userGender = user.value.gender
+    val radioOptions = listOf("Leave empty", "Male", "Female", "Other")
+    val (selectedOption, onOptionSelected) = remember { mutableStateOf(userGender) }
+    Column(modifier.selectableGroup()) {
+        radioOptions.forEach { text ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .selectable(
+                        selected = (text == selectedOption),
+                        onClick = {
+                            onOptionSelected(text)
+                            viewModel.updateGenderOption(text)
+                        },
+                        role = Role.RadioButton
+                    )
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = (text == selectedOption),
+                    onClick = null // null recommended for accessibility with screen readers
+                )
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+// Dialog composable that is shown when user clicks on the gender text field
+// This composable calls the GenderRadioButtons composable, so that the user can select their gender from the dialog instead of typing it
+@Composable
+fun DialogRadio(
+    onDismissRequest: () -> Unit,
+    onConfirmation: () -> Unit,
+    viewModel: ProfileViewModel = hiltViewModel()
+) {
+    Dialog(onDismissRequest = { onDismissRequest() }) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(375.dp)
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                GenderRadioButtons()
+                TextButton(
+                    onClick = {
+                        onConfirmation()
+                        viewModel.updateGender()
+                    }
+                ) {
+                    Text("Confirm")
+                }
+            }
+        }
     }
 }

@@ -15,12 +15,11 @@ import javax.inject.Inject
 // UserRepository interface that is used when the app wants to interact with the database
 interface UserRepository {
     suspend fun getUsers(): List<User>?
-    suspend fun getUser(email: String): User
+    suspend fun getUser(id: String): User
 
     suspend fun updateUser(
-        currentEmail: String,
+        id: String,
         name: String,
-        email: String,
         gender: String,
         age: String,
         height: String,
@@ -38,22 +37,23 @@ class UserRepositoryImpl @Inject constructor(
     // Gets a list of all the users
     override suspend fun getUsers(): List<User>? {
         return withContext(Dispatchers.IO) {
-            val result = postgrest.from("user")
+            val result = postgrest.from("users")
                 .select().decodeList<User>()
             result
         }
     }
 
-    // Get a single user by email that will be passed to the functions as an argument
-    override suspend fun getUser(email: String): User {
+    // Get a single user by id that will be passed to the functions as an argument
+    override suspend fun getUser(id: String): User {
+        Log.d("UserRepo", "getUser() passed id: $id")
         try {
             return withContext(Dispatchers.IO) {
-                val result = postgrest.from("user")
-                    .select(columns = Columns.ALL) {
-                        // Filter block to only get the user with given email
-                        // In this case the given email is the logged in user's email
+                val result = postgrest.from("users")
+                    .select(columns = Columns.list("id, name, email, gender, age, height, weight")) {
+                        // Filter block to only get the user with given id
+                        // In this case the given id is the logged in user's id
                         filter {
-                            eq("email", email)
+                            eq("id", id)
                         }
                     }
                 Log.d(
@@ -69,12 +69,11 @@ class UserRepositoryImpl @Inject constructor(
         return User()
     }
 
-    // Updates the user's information in the database using the currently logged in user's email
+    // Updates the user's information in the database using the currently logged in user's id
     // name, email, gender, age, height and weight values are gotten from the text fields in UpdateUserScreen composable
     override suspend fun updateUser(
-        currentEmail: String,
+        id: String,
         name: String,
-        email: String,
         gender: String,
         age: String,
         height: String,
@@ -82,10 +81,9 @@ class UserRepositoryImpl @Inject constructor(
     ) {
         try {
             return withContext(Dispatchers.IO) {
-                postgrest.from("user").update(
+                postgrest.from("users").update(
                     {
                         set("name", name)
-                        set("email", email)
                         set("gender", gender)
                         set("age", age)
                         set("height", height)
@@ -93,7 +91,7 @@ class UserRepositoryImpl @Inject constructor(
                     }
                 ) {
                     filter {
-                        eq("email", currentEmail)
+                        eq("id", id)
                     }
                 }
                 Log.d("UserRepo", "updateUser() test: successfully updated user")

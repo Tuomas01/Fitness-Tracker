@@ -1,6 +1,7 @@
 package com.example.fitnesstracker.ui.screens.profile
 
 import android.app.Activity
+import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,12 +26,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,89 +45,55 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.fitnesstracker.ui.screens.authentication.AuthViewModel
+import kotlinx.coroutines.launch
 
 // Profile screen view
 @Composable
 fun ProfileScreen(
-    onNavigate: () -> Unit
+    onNavigate: () -> Unit,
+    clearBackStack: () -> Unit,
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
-    // Creates a new viewmodel that is being passed to the UserTextFields composable
+    val isAnonymous by viewModel.isAnonymous.collectAsState()
+    val user by viewModel.userState.collectAsState()
+
+    val openLinkEmailDialog = remember { mutableStateOf(false) }
+    when {
+        openLinkEmailDialog.value -> {
+            LinkEmailDialog(
+                onDismissRequest = { openLinkEmailDialog.value = false },
+                clearBackStack = clearBackStack
+            )
+        }
+    }
     Column(
         modifier = Modifier
             .wrapContentSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        ProfileIcon()
-        Button(
-            onClick = {
-                onNavigate()
-            }
+        ProfileIcon(clearBackStack)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Update user")
-        }
-    }
-}
-
-// Radio button for selecting gender
-@Composable
-fun GenderRadioButtons(modifier: Modifier = Modifier) {
-    val radioOptions = listOf("Male", "Female", "Other")
-    val (selectedOption, onOptionSelected) = remember { mutableStateOf(radioOptions[0]) }
-    Column(modifier.selectableGroup()) {
-        radioOptions.forEach { text ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .selectable(
-                        selected = (text == selectedOption),
-                        onClick = { onOptionSelected(text) },
-                        role = Role.RadioButton
-                    )
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = (text == selectedOption),
-                    onClick = null // null recommended for accessibility with screen readers
-                )
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-        }
-    }
-}
-
-// Dialog composable that is shown when user clicks on the gender text field
-// This composable calls the GenderRadioButtons composable, so that the user can select their gender from the dialog instead of typing it
-@Composable
-fun DialogRadio(
-    onDismissRequest: () -> Unit,
-    onConfirmation: () -> Unit,
-) {
-    Dialog(onDismissRequest = { onDismissRequest() }) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(375.dp)
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                GenderRadioButtons()
-                TextButton(
-                    onClick = { onConfirmation() }
+            if (isAnonymous) {
+                Text("Logged in as a guest")
+                Button(
+                    onClick = {
+                        openLinkEmailDialog.value = !openLinkEmailDialog.value
+                    }
                 ) {
-                    Text("Confirm")
+                    Text("Link email")
+                }
+            } else {
+                Text("Logged in as ${user.email}")
+                Button(
+                    onClick = {
+                        onNavigate()
+                    }
+                ) {
+                    Text("Update user")
                 }
             }
         }
@@ -131,9 +102,9 @@ fun DialogRadio(
 
 @Composable
 fun ProfileIcon(
+    clearBackStack: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    val activity = (LocalContext.current as? Activity)
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -162,7 +133,7 @@ fun ProfileIcon(
             IconButton(
                 onClick = {
                     viewModel.signOut()
-                    //activity?.finish()
+                    clearBackStack()
                 },
                 modifier = Modifier
             ) {
@@ -170,6 +141,80 @@ fun ProfileIcon(
                     Icons.Default.Logout,
                     contentDescription = "Sign out button"
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun LinkEmailDialog(
+    onDismissRequest: () -> Unit,
+    clearBackStack: () -> Unit,
+    viewModel: ProfileViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val userState by viewModel.userState.collectAsState()
+    val context = LocalContext.current
+
+    Dialog(onDismissRequest = { onDismissRequest() }) {
+        Card(
+            modifier = Modifier
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "Please enter an email you want to link this account to. After linking email to the account, you will be signed out. Press close if you want to keep browsing as a guest.",
+                    modifier = Modifier
+                        .padding(16.dp, 16.dp, 16.dp, 0.dp)
+                )
+                OutlinedTextField(
+                    value = userState.email,
+                    onValueChange = {
+                        viewModel.updateEmail(it)
+                    },
+                    label = { Text("Email") },
+                    maxLines = 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                )
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            val success = viewModel.updateUserEmail()
+                            if (success) {
+                                authViewModel.signOut()
+                                clearBackStack()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Something went wrong with linking email",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .padding(16.dp, 0.dp, 16.dp, 6.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text("Confirm email")
+                }
+                Button(
+                    onClick = {
+                        onDismissRequest()
+                    },
+                    modifier = Modifier
+                        .padding(16.dp, 0.dp, 16.dp, 16.dp)
+                        .fillMaxWidth(),
+                ) {
+                    Text("Close")
+                }
             }
         }
     }

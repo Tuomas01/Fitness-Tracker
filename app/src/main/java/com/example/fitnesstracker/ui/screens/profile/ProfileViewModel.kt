@@ -1,6 +1,8 @@
 package com.example.fitnesstracker.ui.screens.profile
 
 import android.util.Log
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fitnesstracker.supabase.AuthRepository
@@ -35,14 +37,18 @@ class ProfileViewModel @Inject constructor(
     private val _userStateFromDb = MutableStateFlow(User())
     val userStateFromDb: StateFlow<User> = _userStateFromDb.asStateFlow()
 
-    private val _loggedInEmail = MutableStateFlow("")
-    val loggedInEmail: StateFlow<String> = _loggedInEmail.asStateFlow()
+    private val _userId = MutableStateFlow("")
+    val userId: StateFlow<String> = _userId.asStateFlow()
+
+    private val _isAnonymous = MutableStateFlow(true)
+    val isAnonymous: StateFlow<Boolean> = _isAnonymous.asStateFlow()
+
+    private val _genderOption = MutableStateFlow("")
+    val genderOption: StateFlow<String> = _genderOption.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            getSessionEmail()
-            getUser(_loggedInEmail.value)
-        }
+        getIdFromSession()
+        getUser(_userId.value)
     }
 
     fun getUsers() {
@@ -51,45 +57,47 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun getUser(email: String) {
+    fun getUser(id: String) {
         viewModelScope.launch {
-            val user = userRepository.getUser(email)
+            val user = userRepository.getUser(id)
             Log.d("ProfileVM", "Testing getUser: $user")
             _userState.emit(user)
+            Log.d("ProfileVM", "userState: ${_userState.value}")
             _userStateFromDb.emit(user)
-        }
-    }
-
-    fun getSessionEmail() {
-        viewModelScope.launch {
-            val sessionEmail = authRepository.retrieveSession()
-            Log.d("ProfileVM", "getSessionEmail test: $sessionEmail")
-            if (sessionEmail !== null) {
-                _loggedInEmail.value = sessionEmail
+            if (_userId.value != user.id) {
+                Log.d("ProfileVM", "getUser() anonymous login")
+                _isAnonymous.value = true
             } else {
-                Log.d("ProfileVM", "getSessionEmail: no active session found")
+                _isAnonymous.value = false
+                Log.d("ProfileVM", "getUser() not anonymous")
             }
         }
     }
 
-    fun updateUser() {
+    fun getIdFromSession() {
+        viewModelScope.launch {
+            val user = authRepository.retrieveUserFromSession()
+            Log.d("ProfileVM", "getIdFromSession() test: $user")
+            if (user !== null) {
+                _userId.value = user.id
+                Log.d("ProfileVM", "userId test: ${user.id} | ${_userId.value}")
+            } else {
+                Log.d("ProfileVM", "getIdFromSession(): no active session found")
+            }
+        }
+    }
+
+    fun updateUser(): Boolean {
         // Check if the text fields are empty and if they are add user's information from database to the _userState object
         // This should be improved to make it cleaner.
         // Instead of using multiple if checks there has to be a way to iterate through all the _userState values
+        val success = mutableStateOf(false)
         if (_userState.value.name.isEmpty()) {
             _userState.update { it.copy(name = _userStateFromDb.value.name) }
         }
 
-        if (_userState.value.email.isEmpty()) {
-            _userState.update { it.copy(email = _userStateFromDb.value.email) }
-        }
-
         if (_userState.value.age.isEmpty()) {
             _userState.update { it.copy(age = _userStateFromDb.value.age) }
-        }
-
-        if (_userState.value.gender.isEmpty()) {
-            _userState.update { it.copy(gender = _userStateFromDb.value.gender) }
         }
 
         if (_userState.value.height.isEmpty()) {
@@ -101,21 +109,48 @@ class ProfileViewModel @Inject constructor(
         }
 
         // Calls the userRepository's updateUser() function to update the user information in the database
-        viewModelScope.launch {
-            try {
-                val response = userRepository.updateUser(
-                    currentEmail = _loggedInEmail.value,
-                    name = _userState.value.name,
-                    email = _userState.value.email,
-                    gender = _userState.value.gender,
-                    age = _userState.value.age,
-                    height = _userState.value.height,
-                    weight = _userState.value.weight
-                )
-                Log.d("ProfileVm", "updateUser() test: $response")
-            } catch (e: Exception) {
-                Log.d("ProfileVm", "updateUser() error: $e")
+        try {
+            viewModelScope.launch {
+                try {
+                    val response = userRepository.updateUser(
+                        id = _userId.value,
+                        name = _userState.value.name,
+                        gender = _userState.value.gender,
+                        age = _userState.value.age,
+                        height = _userState.value.height,
+                        weight = _userState.value.weight
+                    )
+                    Log.d("ProfileVM", "updateUser() test: $response")
+                } catch (e: Exception) {
+                    Log.d("ProfileVM", "updateUser() error: $e")
+                }
             }
+            if (_userState.value.email.isNotEmpty() && _userState.value.email !== _userStateFromDb.value.email) {
+                updateUserEmail()
+            }
+            success.value = true
+        } catch (e: Exception) {
+            Log.d("ProfileVM", "updateUser() outer error: $e")
+            success.value = false
+        }
+        return success.value
+    }
+
+    fun updateUserEmail(): Boolean {
+        if (_userState.value.email.isNotEmpty()) {
+            try {
+                viewModelScope.launch {
+                    val success = authRepository.updateUserEmail(_userState.value.email)
+                    Log.d("ProfileVM", "updateUserEmail() test: $success")
+                }
+                return true
+            } catch (e: Exception) {
+                Log.d("ProfileVM", "updateUserEmail() error: $e")
+                return false
+            }
+        } else {
+            Log.d("ProfileVM", "updateUserEmail() error: email field was not filled")
+            return false
         }
     }
 
@@ -131,8 +166,15 @@ class ProfileViewModel @Inject constructor(
     fun updateEmail(newEmail: String) = _userState.update { it.copy(email = newEmail) }
     fun clearEmail() = _userState.update { it.copy(email = "") }
 
-    fun updateGender(newGender: String) = _userState.update { it.copy(gender = newGender) }
-    fun clearGender() = _userState.update { it.copy(gender = "") }
+    fun updateGender() = _userState.update { it.copy(gender = _genderOption.value) }
+
+    fun updateGenderOption(newGender: String) {
+        if (newGender === "Leave empty") {
+            _genderOption.value = ""
+        } else {
+            _genderOption.value = newGender
+        }
+    }
 
     fun updateAge(newAge: String) = _userState.update { it.copy(age = newAge) }
     fun clearAge() = _userState.update { it.copy(age = "") }

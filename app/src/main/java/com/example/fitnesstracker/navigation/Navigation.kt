@@ -30,34 +30,41 @@ import com.example.fitnesstracker.ui.screens.profile.UpdateUserScreen
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-    context: Context
 ) {
-    NavHost(navController, startDestination = ScreenRoutes.HomeScreen.route) {
+    NavHost(navController, startDestination = "main") {
         // Nested navigation graph for authentication
         navigation(
             startDestination = AuthScreenRoute.AuthScreen.route,
             route = "auth"
         ) {
-            composable(route = AuthScreenRoute.AuthScreen.route) {
-                AuthenticationScreen(
-                    context = context,
+            composable(route = AuthScreenRoute.AuthScreen.route) { AuthenticationScreen() }
+            composable(route = AuthScreenRoute.InitializingScreen.route) { InitializingScreen() }
+        }
+
+        navigation(
+            startDestination = ScreenRoutes.HomeScreen.route,
+            route = "main"
+        ) {
+            composable(route = ScreenRoutes.HomeScreen.route) { HomeScreen() }
+            composable(route = ScreenRoutes.ProfileScreen.route) {
+                ProfileScreen(
                     onNavigate = {
-                        navController.navigate(route = ScreenRoutes.HomeScreen.route)
+                        navController.navigate(route = ScreenRoutes.UpdateUserScreen.route)
+                    },
+                    clearBackStack = {
+                        navController.popBackStack()
                     }
                 )
             }
-            composable(route = AuthScreenRoute.InitializingScreen.route) { InitializingScreen() }
+            composable(route = ScreenRoutes.TrainingScreen.route) { TrainingScreen() }
+            composable(route = ScreenRoutes.UpdateUserScreen.route) {
+                UpdateUserScreen(
+                    onNavigate = {
+                        navController.navigate(route = ScreenRoutes.ProfileScreen.route)
+                    }
+                )
+            }
         }
-        composable(route = ScreenRoutes.HomeScreen.route) { HomeScreen() }
-        composable(route = ScreenRoutes.ProfileScreen.route) {
-            ProfileScreen(
-                onNavigate = {
-                    navController.navigate(route = ScreenRoutes.UpdateUserScreen.route)
-                }
-            )
-        }
-        composable(route = ScreenRoutes.TrainingScreen.route) { TrainingScreen() }
-        composable(route = ScreenRoutes.UpdateUserScreen.route) { UpdateUserScreen() }
     }
 }
 
@@ -66,7 +73,6 @@ fun AppNavHost(
 fun AppNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController,
-    context: Context
 ) {
     // Specifies where the application starts on when launched
     val startDestination = ScreenRoutes.HomeScreen
@@ -106,7 +112,7 @@ fun AppNavigation(
             modifier = Modifier
                 .padding(bottom = contentPadding.calculateBottomPadding())
         ) {
-            AppNavHost(navController, context)
+            AppNavHost(navController)
         }
     }
 }

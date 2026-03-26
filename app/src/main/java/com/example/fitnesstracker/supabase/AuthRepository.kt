@@ -17,10 +17,12 @@ import javax.inject.Inject
 // AuthRepository interface that is used when the app wants to interact with supabase auth
 interface AuthRepository {
     suspend fun authenticateWithOtp(userEmail: String)
-    suspend fun verifyOtp(userEmail: String, otp: String)
-    fun retrieveSession(): String?
+    suspend fun verifyOtp(userEmail: String, otp: String): Boolean
+    fun retrieveUserFromSession(): UserInfo?
     fun retrieveSessionStatus(): SessionStatus?
     suspend fun signOut()
+    suspend fun updateUserEmail(userEmail: String): Boolean
+    suspend fun anonymousSignIn()
 }
 
 // The implementation for AuthRepository
@@ -46,7 +48,7 @@ class AuthRepositoryImpl @Inject constructor(
 
     // Verify whether the given email and token are valid.
     // If so, the user will be logged in and a new valid session will be created
-    override suspend fun verifyOtp(userEmail: String, otp: String) {
+    override suspend fun verifyOtp(userEmail: String, otp: String): Boolean {
         try {
             val response = auth.verifyEmailOtp(
                 type = OtpType.Email.EMAIL,
@@ -54,18 +56,20 @@ class AuthRepositoryImpl @Inject constructor(
                 token = otp
             )
             Log.d("AuthRepo", "verifyOtp() test: $response")
+            return true
         } catch (e: Exception) {
             Log.d("AuthRepo", "verifyOtp() error: $e")
+            return false
         }
     }
 
     // Retrieves the current active session or null if no session is active
-    // Returns the user's email from the session data or null if no session was found
-    override fun retrieveSession(): String? {
+    // Returns the user's id from the session data or null if no session was found
+    override fun retrieveUserFromSession(): UserInfo? {
         val session = auth.currentSessionOrNull()
         Log.d("AuthRepo", "retrieveSession() test: $session")
         if (session !== null) {
-            return session.user?.email
+            return session.user
         } else {
             return null
         }
@@ -84,6 +88,31 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.d("AuthRepo", "retrieveSessionStatus() error: $e")
             return null
+        }
+    }
+
+    // Updates the user's email with given email
+    override suspend fun updateUserEmail(userEmail: String): Boolean {
+        try {
+            val user = auth.updateUser {
+                email = userEmail
+            }
+            Log.d("AuthRepo", "updateUserEmail() test: $user")
+            return true
+        } catch (e: Exception) {
+            Log.d("AuthRepo", "updateUserEmail() error: $e")
+            return false
+        }
+    }
+
+    // Signs the user in anonymously so that the user can access the app without signing in
+    // Creates a new authenticated session
+    override suspend fun anonymousSignIn() {
+        try {
+            val response = auth.signInAnonymously()
+            Log.d("AuthRepo", "anonymousSignIn() test: $response")
+        } catch (e: Exception) {
+            Log.d("AuthRepo", "anonymousSignIn() error: $e")
         }
     }
 

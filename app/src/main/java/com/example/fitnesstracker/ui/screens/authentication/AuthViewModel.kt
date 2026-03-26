@@ -31,18 +31,16 @@ class AuthViewModel @Inject constructor(
 
     //private val _passwordlessAuth = MutableStateFlow(true)
     //val passwordlessAuth: StateFlow<Boolean> = _passwordlessAuth.asStateFlow()
-
-    private val _isLoggedIn = MutableStateFlow(false)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
-
     private val _sessionState = MutableStateFlow<SessionStatus?>(null)
     val sessionState: StateFlow<SessionStatus?> = _sessionState.asStateFlow()
 
+    // Gets user from the session when the view model is initialized
     init {
-        getSession()
+        getUserFromSession()
         //getSessionStatus()
     }
 
+    // Updates the email text field value
     fun updateEmail(newEmail: String) {
         _email.value = newEmail
     }
@@ -51,6 +49,7 @@ class AuthViewModel @Inject constructor(
         _password.value = newPassword
     }*/
 
+    // Updates the token text field value
     fun updateToken(token: String) {
         _otpToken.value = token
     }
@@ -59,6 +58,7 @@ class AuthViewModel @Inject constructor(
         _passwordlessAuth.value = !_passwordlessAuth.value
     }*/
 
+    // Calls the auth repository authenticateWithOtp function and uses the email from email text field as a value if it isn't empty
     fun authenticateWithOtp() {
         if (_email.value.isNotEmpty()) {
             viewModelScope.launch {
@@ -69,48 +69,65 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun verifyOtp() {
+    // Calls the auth repository verifyOtp function using the email and otp text field values if they are not empty
+    suspend fun verifyOtp(): Boolean {
         if (_email.value.isNotEmpty() && _otpToken.value.isNotEmpty()) {
             try {
-                viewModelScope.launch {
-                    authRepository.verifyOtp(
-                        userEmail = _email.value,
-                        otp = _otpToken.value
-                    )
-                }
-                _isLoggedIn.value = true
+                // Returns true if verifying was successful and false if it failed
+                val authenticated = authRepository.verifyOtp(
+                    userEmail = _email.value,
+                    otp = _otpToken.value
+                )
+                Log.d("AuthVM", "verifyOtp() test: $authenticated")
+                return authenticated
             } catch (e: Exception) {
                 Log.d("AuthVM", "verifyOtp() error: $e")
-                _isLoggedIn.value = false
+                return false
             }
         } else {
-            Log.d("AuthVM", "Email and OTP token have not been filled in")
-            _isLoggedIn.value = false
+            Log.d("AuthVM", "Email or OTP token has not been filled in properly")
+            return false
         }
     }
 
-    fun getSession() {
-        // Auth repository returns email from the session's user data if a session is active and null if a session was not found
-        val session = authRepository.retrieveSession()
-        Log.d("AuthVM", "getSession() test: $session")
-        // Assigns a boolean value to the _isLoggedIn variable based on if there is an active session or not
+    fun getUserFromSession() {
+        // Auth repository returns user info from the session's user data if a session is active and null if a session was not found
+        val user = authRepository.retrieveUserFromSession()
+        Log.d("AuthVM", "getUserFromSession() test: $user")
     }
 
     fun getSessionStatus() {
         try {
             val sessionStatus = authRepository.retrieveSessionStatus()
             _sessionState.value = sessionStatus
-            Log.d("AuthVm", "getSessionStatus(): $sessionStatus")
+            Log.d("AuthVM", "getSessionStatus(): $sessionStatus")
         } catch (e: Exception) {
-            Log.d("AuthVm", "getSessionStatus() error: $e")
+            Log.d("AuthVM", "getSessionStatus() error: $e")
+        }
+    }
+
+    // Calls the auth repository anonymousSignIn function to log the user in anonymously
+    // Doesn't return anything but if it was successful, a new authenticated session will be created
+    fun anonymousSignIn() {
+        try {
+            viewModelScope.launch {
+                val response = authRepository.anonymousSignIn()
+                Log.d("AuthVM", "anonymousSignIn() test: $response")
+            }
+        } catch (e: Exception) {
+            Log.d("AuthVM", "anonymousSignIn() error: $e")
         }
     }
 
     // Removes the active session
     fun signOut() {
         viewModelScope.launch {
-            authRepository.signOut()
+            try {
+                authRepository.signOut()
+            } catch (e: Exception) {
+                Log.d("AuthVM", "signOut() error: $e")
+            }
         }
-        authRepository.retrieveSession()
+        authRepository.retrieveUserFromSession()
     }
 }

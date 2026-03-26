@@ -4,6 +4,8 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
@@ -11,6 +13,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,20 +31,22 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
 fun AuthenticationScreen(
     viewModel: AuthViewModel = hiltViewModel(),
-    context: Context,
     // Function for navigating to the home screen from the authentication screen
     // Needed because the user signs out from the profile page and the app remembers this
-    onNavigate: () -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
     val email by viewModel.email.collectAsState()
     //val password by viewModel.password.collectAsState()
     //val passwordlessAuth by viewModel.passwordlessAuth.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val openTokenDialog = remember { mutableStateOf(false) }
     when {
@@ -48,66 +56,87 @@ fun AuthenticationScreen(
                 onConfirmation = {
                     openTokenDialog.value = false
                 },
-                onNavigate = onNavigate,
-                context = context
+                showSnackbar = {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Incorrect OTP. Please re-enter the code and try again.", duration = SnackbarDuration.Short)
+                    }
+                }
             )
         }
     }
-    Column(
-        modifier = Modifier
-            .padding(20.dp)
-            .wrapContentSize(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        OutlinedTextField(
-            value = email,
-            onValueChange = {
-                viewModel.updateEmail(it)
-            },
-            label = { Text("Email") },
-            maxLines = 1,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        /*if (!passwordlessAuth) {
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) { contentPadding ->
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(
+                space = 6.dp,
+                alignment = Alignment.CenterVertically
+            )
+        ) {
             OutlinedTextField(
-                value = password,
+                value = email,
                 onValueChange = {
-                    viewModel.updatePassword(it)
+                    viewModel.updateEmail(it)
                 },
-                label = { Text("Password") },
+                label = { Text("Email") },
                 maxLines = 1,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            /*if (!passwordlessAuth) {
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = {
+                        viewModel.updatePassword(it)
+                    },
+                    label = { Text("Password") },
+                    maxLines = 1,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                )
+            }*/
+            val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                onClick = {
+                    localSoftwareKeyboardController?.hide()
+                    openTokenDialog.value = !openTokenDialog.value
+                    viewModel.authenticateWithOtp()
+                    /*if (passwordlessAuth) {
+                        openTokenDialog.value = !openTokenDialog.value
+                    } else {
+                        coroutineScope.launch {
+                            viewModel.authenticateUser()
+                        }
+                    }*/
+                }) {
+                Text("Sign in")
+            }
+            Button(
                 modifier = Modifier
                     .fillMaxWidth(),
-            )
-        }*/
-        val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
-        Button(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            onClick = {
-                localSoftwareKeyboardController?.hide()
-                openTokenDialog.value = !openTokenDialog.value
-                viewModel.authenticateWithOtp()
-                /*if (passwordlessAuth) {
-                    openTokenDialog.value = !openTokenDialog.value
-                } else {
-                    coroutineScope.launch {
-                        viewModel.authenticateUser()
-                    }
-                }*/
-            }) {
-            Text("Sign in")
-        }
-        /*Button(
-            modifier = Modifier
-                .fillMaxWidth(),
-            onClick = {
-                viewModel.changeAuthMethod()
+                onClick = {
+                    viewModel.anonymousSignIn()
+                }
+            ) {
+                Text("Guest login")
             }
-        ) {
-            Text("Alternative authentication method")
-        }*/
+            /*Button(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                onClick = {
+                    viewModel.changeAuthMethod()
+                }
+            ) {
+                Text("Alternative authentication method")
+            }*/
+        }
     }
 }
 
@@ -115,16 +144,14 @@ fun AuthenticationScreen(
 fun TokenDialog(
     onDismissRequest: () -> Unit,
     onConfirmation: () -> Unit,
-    onNavigate: () -> Unit,
-    context: Context,
+    showSnackbar: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val otpToken by viewModel.otpToken.collectAsState()
-    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
 
-    Dialog(onDismissRequest = { onDismissRequest() }) {
+    Dialog(onDismissRequest = {}) {
         Card(
             modifier = Modifier
                 .padding(16.dp),
@@ -135,7 +162,7 @@ fun TokenDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "An OTP code has been sent to your email, please input the code here.",
+                    text = "An OTP code has been sent to your email. Please input the code here.",
                     modifier = Modifier
                         .padding(16.dp, 16.dp, 16.dp, 0.dp)
                 )
@@ -153,24 +180,27 @@ fun TokenDialog(
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            viewModel.verifyOtp()
+                            val success = viewModel.verifyOtp()
+                            if (!success) {
+                                showSnackbar()
+                            }
                         }
-                        if (isLoggedIn) {
-                            onConfirmation()
-                            onNavigate()
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "OTP was incorrect, please enter the value again",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                    },
+                    modifier = Modifier
+                        .padding(16.dp, 0.dp, 16.dp, 6.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text("Confirm")
+                }
+                Button(
+                    onClick = {
+                        onDismissRequest()
                     },
                     modifier = Modifier
                         .padding(16.dp, 0.dp, 16.dp, 16.dp)
                         .fillMaxWidth()
                 ) {
-                    Text("Confirm")
+                    Text("Cancel")
                 }
             }
         }

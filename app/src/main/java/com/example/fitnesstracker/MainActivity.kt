@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
                         is SessionStatus.Authenticated -> {
                             // Application's bottom navigation bar that shows on all views
                             // The other views are accessible through NavHost which the AppNavigation composable calls
-                            AppNavigation(Modifier, navController, this)
+                            AppNavigation(Modifier, navController)
                             Log.d("MainActivity", "Session has been authenticated")
                         }
 
@@ -75,24 +75,14 @@ class MainActivity : ComponentActivity() {
 
                         // There was an error retrieving the session
                         is SessionStatus.RefreshFailure -> {
-                            AuthenticationScreen(
-                                context = this,
-                                onNavigate = {
-                                    navController.navigate(route = ScreenRoutes.HomeScreen.route)
-                                }
-                            )
+                            AuthenticationScreen()
                             Log.d("MainActivity", "Refreshing session failed")
                         }
 
                         // User hasn't been logged in
                         is SessionStatus.NotAuthenticated -> {
                             // Show the authentication screen instead if no active session was found
-                            AuthenticationScreen(
-                                context = this,
-                                onNavigate = {
-                                    navController.navigate(route = ScreenRoutes.HomeScreen.route)
-                                }
-                            )
+                            AuthenticationScreen()
                             Log.d("MainActivity", "No session found, user has not been signed in")
                         }
 
