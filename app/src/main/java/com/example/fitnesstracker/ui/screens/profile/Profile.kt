@@ -28,6 +28,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -57,43 +62,60 @@ fun ProfileScreen(
     val isAnonymous by viewModel.isAnonymous.collectAsState()
     val user by viewModel.userState.collectAsState()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     val openLinkEmailDialog = remember { mutableStateOf(false) }
     when {
         openLinkEmailDialog.value -> {
             LinkEmailDialog(
                 onDismissRequest = { openLinkEmailDialog.value = false },
-                clearBackStack = clearBackStack
+                clearBackStack = clearBackStack,
+                showSnackbar = {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            "Linking email failed. Please try again.",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
             )
         }
     }
-    Column(
-        modifier = Modifier
-            .wrapContentSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        ProfileIcon(clearBackStack)
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) { contentPadding ->
         Column(
+            modifier = Modifier
+                .wrapContentSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.Top
         ) {
-            if (isAnonymous) {
-                Text("Logged in as a guest")
-                Button(
-                    onClick = {
-                        openLinkEmailDialog.value = !openLinkEmailDialog.value
+            ProfileIcon(clearBackStack)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (isAnonymous) {
+                    Text("Logged in as a guest")
+                    Button(
+                        onClick = {
+                            openLinkEmailDialog.value = !openLinkEmailDialog.value
+                        }
+                    ) {
+                        Text("Link email")
                     }
-                ) {
-                    Text("Link email")
-                }
-            } else {
-                Text("Logged in as ${user.email}")
-                Button(
-                    onClick = {
-                        onNavigate()
+                } else {
+                    Text("Logged in as ${user.email}")
+                    Button(
+                        onClick = {
+                            onNavigate()
+                        }
+                    ) {
+                        Text("Update user")
                     }
-                ) {
-                    Text("Update user")
                 }
             }
         }
@@ -150,13 +172,12 @@ fun ProfileIcon(
 fun LinkEmailDialog(
     onDismissRequest: () -> Unit,
     clearBackStack: () -> Unit,
+    showSnackbar: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val coroutineScope = rememberCoroutineScope()
     val userState by viewModel.userState.collectAsState()
-    val context = LocalContext.current
-
     Dialog(onDismissRequest = { onDismissRequest() }) {
         Card(
             modifier = Modifier
@@ -183,6 +204,7 @@ fun LinkEmailDialog(
                         .fillMaxWidth()
                         .padding(16.dp),
                 )
+                val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
                 Button(
                     onClick = {
                         coroutineScope.launch {
@@ -191,11 +213,8 @@ fun LinkEmailDialog(
                                 authViewModel.signOut()
                                 clearBackStack()
                             } else {
-                                Toast.makeText(
-                                    context,
-                                    "Something went wrong with linking email",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                localSoftwareKeyboardController?.hide()
+                                showSnackbar()
                             }
                         }
                     },

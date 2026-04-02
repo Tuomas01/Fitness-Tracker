@@ -148,9 +148,7 @@ fun TokenDialog(
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val otpToken by viewModel.otpToken.collectAsState()
-
     val coroutineScope = rememberCoroutineScope()
-
     Dialog(onDismissRequest = {}) {
         Card(
             modifier = Modifier
@@ -177,8 +175,10 @@ fun TokenDialog(
                         .fillMaxWidth()
                         .padding(16.dp),
                 )
+                val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
                 Button(
                     onClick = {
+                        localSoftwareKeyboardController?.hide()
                         coroutineScope.launch {
                             val success = viewModel.verifyOtp()
                             if (!success) {

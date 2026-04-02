@@ -137,7 +137,7 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun updateUserEmail(): Boolean {
-        if (_userState.value.email.isNotEmpty()) {
+        if (_userState.value.email.isNotEmpty() && _userState.value.email.isNotBlank()) {
             try {
                 viewModelScope.launch {
                     val success = authRepository.updateUserEmail(_userState.value.email)
