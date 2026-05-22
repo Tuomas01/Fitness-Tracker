@@ -25,7 +25,7 @@ properties.load(FileInputStream(secretFile))
 
 android {
     namespace = "com.example.fitnesstracker"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.fitnesstracker"
@@ -75,9 +75,10 @@ android {
 }
 
 dependencies {
-
     val supabaseVersion = "3.0.0"
     val ktorVersion = "3.1.0"
+    val hiltVersion = "2.57.1"
+    val camerax_version = "1.5.3"
 
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
@@ -100,10 +101,26 @@ dependencies {
     implementation("io.ktor:ktor-utils:${ktorVersion}")
 
     // Hilt dependencies
-    val hiltVersion = "2.57.1"
     implementation("com.google.dagger:hilt-android:$hiltVersion")
     ksp("com.google.dagger:hilt-android-compiler:$hiltVersion")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
+
+    // CameraX dependencies
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-video:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+    implementation("androidx.camera:camera-extensions:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+    implementation("androidx.camera:camera-mlkit-vision:${camerax_version}")
+    implementation("androidx.camera:camera-extensions:${camerax_version}")
+    implementation("androidx.camera:camera-compose:${camerax_version}")
+
+    // Camera viewFinder dependencies
+    implementation("androidx.camera.viewfinder:viewfinder-compose:1.6.1")
+    implementation("androidx.camera.viewfinder:viewfinder-view:1.6.1")
+    implementation("androidx.camera.viewfinder:viewfinder-core:1.6.1")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

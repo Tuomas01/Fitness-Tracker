@@ -69,14 +69,15 @@ fun UpdateUserScreen(
             verticalArrangement = Arrangement.Center
         ) {
             ProfileTextFields()
-            UpdateUserButton()
+            UpdateUserButton(onNavigate)
         }
     }
 }
 
 @Composable
 fun UpdateUserButton(
-    viewModel: ProfileViewModel = hiltViewModel()
+    onNavigate: () -> Unit,
+    viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     Button(
@@ -88,6 +89,7 @@ fun UpdateUserButton(
                     "User information has been updated successfully",
                     Toast.LENGTH_SHORT
                 ).show()
+                onNavigate()
             } else {
                 Toast.makeText(
                     context,

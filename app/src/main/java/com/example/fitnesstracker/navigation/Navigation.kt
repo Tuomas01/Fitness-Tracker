@@ -48,8 +48,11 @@ fun AppNavHost(
             composable(route = ScreenRoutes.HomeScreen.route) { HomeScreen() }
             composable(route = ScreenRoutes.ProfileScreen.route) {
                 ProfileScreen(
-                    onNavigate = {
+                    navigateToUpdateUser = {
                         navController.navigate(route = ScreenRoutes.UpdateUserScreen.route)
+                    },
+                    navigateToHome = {
+                        navController.navigate(route = ScreenRoutes.HomeScreen.route)
                     },
                     clearBackStack = {
                         navController.popBackStack()

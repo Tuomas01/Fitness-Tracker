@@ -124,6 +124,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 authRepository.signOut()
+                _email.value = ""
             } catch (e: Exception) {
                 Log.d("AuthVM", "signOut() error: $e")
             }
