@@ -25,6 +25,7 @@ import androidx.navigation.navigation
 import com.example.fitnesstracker.ui.screens.authentication.AuthenticationScreen
 import com.example.fitnesstracker.ui.screens.authentication.InitializingScreen
 import com.example.fitnesstracker.ui.screens.profile.UpdateUserScreen
+import com.example.fitnesstracker.ui.screens.training.TrainingPlanScreen
 
 // Navigation host that is responsible for navigation between composables and connects routes from ScreenRoutes to composables
 @Composable
@@ -59,7 +60,20 @@ fun AppNavHost(
                     }
                 )
             }
-            composable(route = ScreenRoutes.TrainingScreen.route) { TrainingScreen() }
+            composable(route = ScreenRoutes.TrainingScreen.route) {
+                TrainingScreen(
+                    navigateToPlan = {
+                        navController.navigate(route = ScreenRoutes.TrainingPlanScreen.route)
+                    },
+                )
+            }
+            composable(route = ScreenRoutes.TrainingPlanScreen.route) {
+                TrainingPlanScreen(
+                    navigateBack = {
+                        navController.navigate(route = ScreenRoutes.TrainingScreen.route)
+                    }
+                )
+            }
             composable(route = ScreenRoutes.UpdateUserScreen.route) {
                 UpdateUserScreen(
                     onNavigate = {
@@ -89,7 +103,7 @@ fun AppNavigation(
             NavigationBar(windowInsets = NavigationBarDefaults.windowInsets) {
                 ScreenRoutes.entries.forEachIndexed { index, screenRoute ->
                     // Excludes the updateUser screen from the bottom bar
-                    if (screenRoute.route !== ScreenRoutes.UpdateUserScreen.route) {
+                    if (screenRoute.route !== ScreenRoutes.UpdateUserScreen.route && screenRoute.route !== ScreenRoutes.TrainingPlanScreen.route) {
                         NavigationBarItem(
                             selected = selectedDestination == index,
                             onClick = {
