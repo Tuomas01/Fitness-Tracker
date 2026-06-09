@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.fitnesstracker.ui.screens.home.HomeScreen
@@ -26,6 +27,7 @@ import com.example.fitnesstracker.ui.screens.authentication.AuthenticationScreen
 import com.example.fitnesstracker.ui.screens.authentication.InitializingScreen
 import com.example.fitnesstracker.ui.screens.profile.UpdateUserScreen
 import com.example.fitnesstracker.ui.screens.training.TrainingPlanScreen
+import com.example.fitnesstracker.ui.screens.training.TrainingViewModel
 
 // Navigation host that is responsible for navigation between composables and connects routes from ScreenRoutes to composables
 @Composable
@@ -60,18 +62,31 @@ fun AppNavHost(
                     }
                 )
             }
+            /*
+             Adds a shared trainingViewModel to TrainingScreen and TrainingPlanScreen by creating the hiltViewModel
+             with the previousBackStackEntry as the viewModelStoreOwner.
+             If there hasn't been a previous visible NavBackStackEntry, then creates a new instance of the hiltViewModel
+             */
             composable(route = ScreenRoutes.TrainingScreen.route) {
+                val trainingViewModel: TrainingViewModel =
+                    if (navController.previousBackStackEntry != null)
+                        hiltViewModel(navController.previousBackStackEntry!!) else hiltViewModel()
                 TrainingScreen(
                     navigateToPlan = {
                         navController.navigate(route = ScreenRoutes.TrainingPlanScreen.route)
                     },
+                    trainingViewModel = trainingViewModel
                 )
             }
             composable(route = ScreenRoutes.TrainingPlanScreen.route) {
+                val trainingViewModel: TrainingViewModel =
+                    if (navController.previousBackStackEntry != null)
+                        hiltViewModel(navController.previousBackStackEntry!!) else hiltViewModel()
                 TrainingPlanScreen(
                     navigateBack = {
                         navController.navigate(route = ScreenRoutes.TrainingScreen.route)
-                    }
+                    },
+                    trainingViewModel = trainingViewModel
                 )
             }
             composable(route = ScreenRoutes.UpdateUserScreen.route) {

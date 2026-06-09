@@ -10,12 +10,14 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 interface TrainingRepository {
     suspend fun getAllTrainingPlans(): List<TrainingPlan>?
     suspend fun getTrainingPlan(id: Int): TrainingPlan
     suspend fun addPlanToUser(planId: Int, userId: String)
+    suspend fun fetchAllExercisesInPlans(): String?
 }
 
 class TrainingRepositoryImpl @Inject constructor(
@@ -56,6 +58,20 @@ class TrainingRepositoryImpl @Inject constructor(
 
     override suspend fun addPlanToUser(planId: Int, userId: String) {
 
+    }
+
+    override suspend fun fetchAllExercisesInPlans(): String? {
+        try {
+            return withContext(Dispatchers.IO) {
+                val result = postgrest.from("exercises")
+                    .select(Columns.list("name, id, training_plans(plan_id:id, plan_name:name)"))
+                Log.d("TrainingRepo", "fetchAllExercisesInPlans() test: $result \n decoding: ${result.data}")
+                result.data
+            }
+        } catch (e: Exception) {
+            Log.d("TrainingRepo", "fetchAllExercisesInPlans() error: $e")
+            return null
+        }
     }
 }
 
