@@ -89,42 +89,36 @@ fun TrainingPlanCarousel(
     planType: String = "All",
 ) {
     val trainingPlans = trainingViewModel.listOfPlans.collectAsState()
-    var plansCount = trainingPlans.value.count()
+    var plans = trainingPlans.value
+
+    if (planType != "All") {
+        plans = trainingViewModel.filterTrainingPlans(planType)
+    }
 
     ElevatedCard(
         modifier = Modifier
-            .padding(8.dp),
+            .padding(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Text(
-            text = "$planType workout plans",
+            text = if (planType == "Cardio/Strength") "Cardio & Strength exercise plans" else "$planType exercise plans",
             modifier = Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp)
         )
-        HorizontalMultiBrowseCarousel(
+        HorizontalUncontainedCarousel(
             state = rememberCarouselState(initialItem = 0) {
-                //plansCount = trainingPlans.value.count()
-                /*if (planType != "All") {
-                    plansCount = 0
-                    for (i in trainingPlans.value) {
-                        if (i.type == planType || i.type.contains(planType)) {
-                            println(":DDDDD ${i.type}, :D $plansCount")
-                            plansCount += 1
-                        }
-                    }
-                }*/
-                trainingPlans.value.count()
+                plans.count()
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .padding(bottom = 8.dp),
-            preferredItemWidth = 200.dp,
+            itemWidth = 200.dp,
             itemSpacing = 8.dp,
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) { i ->
-            val item = trainingPlans.value[i]
+            val item = plans[i]
             if (planType == "All" || (item.type == planType || item.type.contains(planType))) {
                 ElevatedCard(
                     elevation = CardDefaults.cardElevation(
@@ -132,7 +126,7 @@ fun TrainingPlanCarousel(
                     ),
                     modifier = Modifier
                         .padding(8.dp)
-                        .height(160.dp)
+                        .height(184.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -150,7 +144,6 @@ fun TrainingPlanCarousel(
                     ) {
                         IconButton(
                             onClick = {
-                                println(":DDDDDD $item")
                                 trainingViewModel.savePlanInfo(item.id, item.name, item.type)
                                 trainingViewModel.addExercisesToPlan(item.id)
                                 navigateToPlan()

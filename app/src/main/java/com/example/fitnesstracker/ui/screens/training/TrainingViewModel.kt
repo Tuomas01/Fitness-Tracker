@@ -131,11 +131,27 @@ class TrainingViewModel @Inject constructor(
                         }
                     }
                     _listOfExercises.value = exerciseList
-                    println(":DDD ${_listOfExercises.value}")
                 }
             } catch (e: Exception) {
                 Log.d("TrainingVM", "addExercisesToPlan() error: $e")
             }
         }
+    }
+
+    /*
+    Loops through all the plans and saves the plans that match the value with the given parameter into a mutable list of TrainingPlans.
+    Parameter type is o type String and refers to the type of the plan.
+    Returns a list of TrainingPlans
+     */
+    fun filterTrainingPlans(type: String): List<TrainingPlan> {
+        val filteredList = mutableListOf<TrainingPlan>()
+        viewModelScope.launch {
+            for (i in _listOfPlans.value) {
+                if (i.type == type || i.type.contains(type)) {
+                    filteredList.add(i)
+                }
+            }
+        }
+        return filteredList
     }
 }
