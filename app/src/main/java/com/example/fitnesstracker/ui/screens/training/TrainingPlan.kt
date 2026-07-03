@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.camera.core.SurfaceRequest
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,9 +53,11 @@ import kotlin.random.Random
 fun TrainingPlanScreen(
     trainingViewModel: TrainingViewModel,
     navigateBack: () -> Unit,
+    cameraViewModel: CameraViewModel = hiltViewModel(),
 ) {
     val selectedPlan by trainingViewModel.trainingPlan.collectAsState()
     val exercises by trainingViewModel.listOfExercises.collectAsState()
+    val inputImage by cameraViewModel.inputImage.collectAsStateWithLifecycle()
 
     // Get the current activity from LocalContext
     val activity = LocalContext.current as Activity
@@ -121,6 +125,7 @@ fun TrainingPlanScreen(
                 ) {
                     Text("Disable camera")
                 }
+                Text(":DDDD $inputImage")
             }
         } else {
             Column(

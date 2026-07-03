@@ -123,6 +123,9 @@ dependencies {
     implementation("androidx.camera.viewfinder:viewfinder-view:1.6.1")
     implementation("androidx.camera.viewfinder:viewfinder-core:1.6.1")
 
+    // ML Kit Pose Detection
+    implementation("com.google.mlkit:pose-detection:18.0.0-beta5")
+
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
