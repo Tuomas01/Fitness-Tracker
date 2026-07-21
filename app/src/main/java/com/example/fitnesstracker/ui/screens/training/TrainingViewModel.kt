@@ -19,6 +19,13 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import javax.inject.Inject
 
+/**
+ * TrainingViewModel that is a HiltViewModel so that the trainingRepository can be injected into the constructor.
+ * Handles all the logic related to the training plans and exercises in those plans.
+ * Uses the database functions from the repository to get the data and use the data.
+ *
+ * Uses private values to store data and expose it to the UI by getting the private values as StateFlow
+ */
 @HiltViewModel
 class TrainingViewModel @Inject constructor(
     private val trainingRepository: TrainingRepository
@@ -33,7 +40,8 @@ class TrainingViewModel @Inject constructor(
     private val _listOfPlans = MutableStateFlow<List<TrainingPlan>>(listOf())
     val listOfPlans: StateFlow<List<TrainingPlan>> = _listOfPlans.asStateFlow()
 
-    private val _exercisesAndPlans = MutableStateFlow<JsonArray>(Json.decodeFromString<JsonArray>("[]"))
+    private val _exercisesAndPlans =
+        MutableStateFlow<JsonArray>(Json.decodeFromString<JsonArray>("[]"))
     val exercisesAndPlans: StateFlow<JsonArray> = _exercisesAndPlans.asStateFlow()
 
     private val _listOfExercises = MutableStateFlow<List<String>>(listOf())
@@ -45,6 +53,12 @@ class TrainingViewModel @Inject constructor(
         getAllExercisesInPlans()
     }
 
+    /**
+     * Saves the info of a selected plan to the _trainingPlan variable by calling the update function with the given values.
+     * @param id Id of the plan
+     * @param name Name of the plan
+     * @param type Type of the plan
+     */
     fun savePlanInfo(id: Int, name: String, type: String) {
         Log.d("TrainingVM", "savePlanInfo() id: $id, name: $name, type: $type")
         _trainingPlan.update { it.copy(id = id, name = name, type = type) }
@@ -54,6 +68,9 @@ class TrainingViewModel @Inject constructor(
         _hasPermissions.value = true
     }
 
+    /**
+     * Uses the trainingRepository function getAllTrainingPlans() to retrieve all training plans from the database and saves it to a variable.
+     */
     fun getAllPlans() {
         viewModelScope.launch {
             val plans = trainingRepository.getAllTrainingPlans()
@@ -64,6 +81,10 @@ class TrainingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Gets a training plan with the given ID
+     * @param id ID of the plan
+     */
     fun getTrainingPlan(id: Int) {
         viewModelScope.launch {
             val plan = trainingRepository.getTrainingPlan(id)
@@ -71,11 +92,12 @@ class TrainingViewModel @Inject constructor(
         }
     }
 
-    /*
-    Calls the trainingRepository's fetchAllExercisesPlans() function to get a response of JSON as string
-    that includes exercise name, id, training plan id and training plan name.
-    If the response isn't null, converts the JSON String into a JSON array and adds it to the _exercisesAndPlans variable.
-    Wrapped in try catch to print an error to the console if something goes wrong.
+    /**
+     * Calls the trainingRepository's fetchAllExercisesPlans() function to get a response of JSON as a string
+     * that includes exercise name, id, training plan id and training plan name.
+     *
+     * If the response isn't null, converts the JSON String into a JSON array and adds it to the _exercisesAndPlans variable.
+     * Wrapped in try catch to print an error to the console if something goes wrong.
      */
     fun getAllExercisesInPlans() {
         viewModelScope.launch {
@@ -94,11 +116,12 @@ class TrainingViewModel @Inject constructor(
         }
     }
 
-    /*
-    Loops through the _exercisesAndPlans variable if the value is not empty.
-    The variable's value is either an empty JSON array by default or a JSON array from getAllExercisesInPlans() function.
-    Has a nested loop to go through the training plans in which the exercise was found in and if the training plan id is the same as the parameter planId,
-    saves all the exercise names into a list.
+    /**
+     * Loops through the _exercisesAndPlans variable if the value is not empty.
+     * The variable's value is either an empty JSON array by default or a JSON array from getAllExercisesInPlans() function.
+     *
+     * Has a nested loop to go through the training plans in which the exercise was found in and if the training plan id is the same as the parameter planId,
+     * saves all the exercise names into a list.
      */
     fun addExercisesToPlan(planId: Int) {
         viewModelScope.launch {
@@ -123,8 +146,10 @@ class TrainingViewModel @Inject constructor(
                                     val exerciseName = i.jsonObject["name"]
                                     val exerciseId = i.jsonObject["id"]
                                     val yplanId = y.jsonObject["plan_id"]
-                                    Log.d("TrainingVM", "addExercisesToPlan() nested condition: " +
-                                            "$yplanId, $exerciseName $exerciseId")
+                                    Log.d(
+                                        "TrainingVM", "addExercisesToPlan() nested condition: " +
+                                                "$yplanId, $exerciseName $exerciseId"
+                                    )
                                     exerciseList.add(exerciseName.toString())
                                 }
                             }
@@ -138,10 +163,10 @@ class TrainingViewModel @Inject constructor(
         }
     }
 
-    /*
-    Loops through all the plans and saves the plans that match the value with the given parameter into a mutable list of TrainingPlans.
-    Parameter type is o type String and refers to the type of the plan.
-    Returns a list of TrainingPlans
+    /**
+     * Loops through all the plans and saves the plans that match the value with the given parameter into a mutable list of TrainingPlans.
+     * @param type String that refers to the type of the plan.
+     * @return A list of TrainingPlans
      */
     fun filterTrainingPlans(type: String): List<TrainingPlan> {
         val filteredList = mutableListOf<TrainingPlan>()

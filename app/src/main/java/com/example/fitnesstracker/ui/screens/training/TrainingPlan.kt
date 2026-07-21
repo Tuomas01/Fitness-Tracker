@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.camera.core.SurfaceRequest
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,12 +33,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,7 +49,14 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.random.Random
+import com.example.fitnesstracker.ui.screens.training.mlkit.PoseOverlay
 
+/**
+ * Training plan screen composable. The screen that shows after clicking on an arrow to go to a training plan on the training page.
+ * @param trainingViewModel A shared viewModel that is created inside the NavHost
+ * @param navigateBack A function to navigate back to the previous screen
+ * @param cameraViewModel CameraViewModel that is a hilt viewModel created inside the constructor
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrainingPlanScreen(
@@ -62,6 +71,8 @@ fun TrainingPlanScreen(
     // Get the current activity from LocalContext
     val activity = LocalContext.current as Activity
 
+    val poseResult by cameraViewModel.detectedPose.collectAsState()
+
     // Permissions for camera
     val permissions = listOf(Manifest.permission.CAMERA)
     val permissionsRequestCode = Random.nextInt(0, 10000)
@@ -73,6 +84,9 @@ fun TrainingPlanScreen(
 
     val cameraActive = remember { mutableStateOf(false) }
     val hasPermissionsState = remember { mutableStateOf(hasPermissions()) }
+
+    val screenWidth = remember { mutableFloatStateOf(1f) }
+    val screenHeight = remember { mutableFloatStateOf(1f) }
 
     fun requestCameraPermissions() {
         if (!hasPermissions()) {
@@ -111,21 +125,38 @@ fun TrainingPlanScreen(
         }
     ) { innerPadding ->
         if (hasPermissionsState.value && cameraActive.value) {
-            MyCameraViewFinder()
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Bottom,
-                horizontalAlignment = Alignment.CenterHorizontally
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { screen ->
+                        screenWidth.floatValue = screen.size.width.toFloat()
+                        screenHeight.floatValue = screen.size.height.toFloat()
+                    }
             ) {
-                Button(
-                    onClick = {
-                        cameraActive.value = false
-                    },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Text("Disable camera")
+                MyCameraViewFinder()
+                if (poseResult != null && inputImage != null) {
+                    PoseOverlay(
+                        poseResult!!.allPoseLandmarks,
+                        inputImage!!.width,
+                        inputImage!!.height,
+                        screenWidth.floatValue + 450,
+                        screenHeight.floatValue - 475
+                        )
                 }
-                Text(":DDDD $inputImage")
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Bottom,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Button(
+                        onClick = {
+                            cameraActive.value = false
+                        },
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Text("Disable camera")
+                    }
+                }
             }
         } else {
             Column(
@@ -156,7 +187,7 @@ fun TrainingPlanScreen(
                                 ) {
                                     // Use the substring function to remove quotes from the string
                                     Text(
-                                        i.substring(1, i.length - 1,),
+                                        i.substring(1, i.length - 1),
                                         fontSize = 24.sp
                                     )
                                     HorizontalDivider(thickness = 2.dp)

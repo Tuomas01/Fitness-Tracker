@@ -17,7 +17,11 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-// Composable function that displays camera preview on the UI
+/**
+ * Composable function that displays camera preview on the UI
+ * @param viewModel CameraViewModel that is a hilt viewModel created inside the constructor
+ * @param lifecycleOwner LifecycleOwner collected from compose. Created automatically in the constructor
+ */
 @Composable
 fun MyCameraViewFinder(
     viewModel: CameraViewModel = hiltViewModel(),
@@ -44,18 +48,6 @@ fun MyCameraViewFinder(
         CameraXViewfinder(
             surfaceRequest = surfaceRequest,
             implementationMode = ImplementationMode.EXTERNAL, // Can also use EMBEDDED
-            modifier = Modifier.pointerInput(Unit) {
-                    detectTapGestures {
-                        with(coordinateTransformer) {
-                            val surfaceCoords = it.transform()
-                            viewModel.focusOnPoint(
-                                surfaceRequest.resolution,
-                                surfaceCoords.x,
-                                surfaceCoords.y,
-                            )
-                        }
-                    }
-                },
             coordinateTransformer = coordinateTransformer,
         )
     }

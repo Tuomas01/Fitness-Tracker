@@ -57,6 +57,11 @@ import kotlinx.serialization.json.jsonNull
 import kotlinx.serialization.json.jsonObject
 import kotlin.random.Random
 
+/**
+ * Training screen composable which is shown to the user when they navigate to the training page.
+ * @param navigateToPlan Function that navigates user to the correct training plan when the arrow on the plan is tapped.
+ * @param trainingViewModel Shared TrainingViewModel that is created in NavHost
+ */
 @Composable
 fun TrainingScreen(
     navigateToPlan: () -> Unit,
@@ -81,6 +86,12 @@ fun TrainingScreen(
     }
 }
 
+/**
+ * Composable function that creates a carousel of training plans.
+ * @param navigateToPlan Function for navigating to a training plan that is passed to this composable in TrainingScreen composable.
+ * @param trainingViewModel TrainingViewModel that is a hiltViewModel created inside the constructor
+ * @param planType String that has a default value of "All". The composable uses this param to determine which plans to show
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrainingPlanCarousel(
