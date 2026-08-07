@@ -72,6 +72,7 @@ fun TrainingPlanScreen(
     val activity = LocalContext.current as Activity
 
     val poseResult by cameraViewModel.detectedPose.collectAsState()
+    val poseDetails by cameraViewModel.classificationResult.collectAsState()
 
     // Permissions for camera
     val permissions = listOf(Manifest.permission.CAMERA)
@@ -148,6 +149,9 @@ fun TrainingPlanScreen(
                     verticalArrangement = Arrangement.Bottom,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    if (poseDetails.isNotEmpty()) {
+                        Text("Pose details: \n${poseDetails[1]}\n${poseDetails[2]}")
+                    }
                     Button(
                         onClick = {
                             cameraActive.value = false

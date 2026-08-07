@@ -28,12 +28,11 @@ fun MyCameraViewFinder(
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
     val currentSurfaceRequest: SurfaceRequest? by viewModel.surfaceRequests.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     // Launch a new coroutine with the lifecycle owner being the key.
     // Uses the CameraViewModel's bindToCamera function to bind the camera to lifecycle
     LaunchedEffect(lifecycleOwner) {
-        viewModel.bindToCamera(context.applicationContext, lifecycleOwner)
+        viewModel.bindToCamera(lifecycleOwner)
     }
 
     // Executes a block of code for the value in currentSurfaceRequest if it's not null.

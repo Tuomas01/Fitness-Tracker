@@ -19,12 +19,16 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fitnesstracker.ui.screens.training.mlkit.PoseDetectorProcessor
+import com.example.fitnesstracker.ui.screens.training.mlkit.classification.PoseClassifierProcessor
 import com.google.android.gms.tasks.Task
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,10 +46,14 @@ import kotlin.random.Random
  * Uses private values to store data and expose it to the UI by getting the private values as StateFlow
  */
 @HiltViewModel
-class CameraViewModel @Inject constructor() : ViewModel() {
+class CameraViewModel @Inject constructor(
+    @ApplicationContext context: Context
+) : ViewModel() {
 
     // Private variable for saving the surface request
     private val _surfaceRequests = MutableStateFlow<SurfaceRequest?>(null)
+
+    private val appContext = context
 
     /*
     Public variable of the _surfaceRequests, that Composable functions can use
@@ -58,6 +66,11 @@ class CameraViewModel @Inject constructor() : ViewModel() {
 
     private val _detectedPose = MutableStateFlow<Pose?>(null)
     val detectedPose: StateFlow<Pose?> = _detectedPose.asStateFlow()
+
+    private val _classificationResult = MutableStateFlow<List<String>>(mutableListOf())
+    val classificationResult: StateFlow<List<String>> = _classificationResult.asStateFlow()
+
+    private val TAG = "MLKitVM"
 
     /**
      * Builds a new camera preview and uses the setSurfaceProvider function to provide a surface to the preview.
@@ -84,16 +97,14 @@ class CameraViewModel @Inject constructor() : ViewModel() {
         .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
         .build()
 
-    // Creates an instance of the PoseDetector with the configured options
-    private val poseDetector = PoseDetection.getClient(poseDetectorOptions)
-
+    val poseDetector = PoseDetectorProcessor(appContext, poseDetectorOptions)
     /**
      * Binds camera to lifecycle using lifecycleOwner, default back or front camera, image analyzer, and a built camera preview
      * @param appContext context of the app to retrieve the camera preview
      * @param lifecycleOwner the lifecycle owner of the app where the camera preview will be bound to
      */
     @OptIn(ExperimentalGetImage::class)
-    suspend fun bindToCamera(appContext: Context, lifecycleOwner: LifecycleOwner) {
+    suspend fun bindToCamera(lifecycleOwner: LifecycleOwner) {
         // Start analyzing the images from camera's stream. imageProxy is a reference to the latest image
         imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(appContext)) { imageProxy ->
 
@@ -109,46 +120,25 @@ class CameraViewModel @Inject constructor() : ViewModel() {
                 val image: InputImage? =
                     imageProxy.image?.let { InputImage.fromMediaImage(it, rotationDegrees) }
                 _inputImage.value = image
-                Log.d("MLKitVM", "Image info: ${imageProxy.imageInfo} \n $image")
+                Log.d(TAG, "Image info: ${imageProxy.imageInfo} \n $image")
 
                 // If the camera is showing and a frame can be accessed, processes the image using the pose detector
-                // Event listeners are added to the pose detector and the result accessed through the event listeners lambdas.
-                // Closes the imageProxy inside the onComplete listener as instructed in the guidelines of PoseDetection
+                // Adds an onCompleteListener to the task to get the results of the detectInImage function
+                // Closes the imageProxy inside the onComplete listener as instructed in the guidelines of PoseDetection. Otherwise it would only detect a pose once and stop
                 if (image != null) {
-                    poseDetector.process(image)
-                        .addOnSuccessListener { results ->
-                            Log.d(
-                                "MLKitVM",
-                                "detectPose() onSuccessListener: $results || ${results.allPoseLandmarks}"
-                            )
+                    val result = poseDetector.detectInImage(image)
+                    result.addOnCompleteListener {
+                        if (result.isSuccessful) {
+                            Log.d(TAG, "Task completed succesfully: \n ${result.result} \n ${result.result.pose}, ${result.result.classificationResult}")
+                            if (result.result.pose.allPoseLandmarks.isNotEmpty()) {
+                                _detectedPose.value = result.result.pose
+                                if (result.result.classificationResult.isNotEmpty()) {
+                                    _classificationResult.value = result.result.classificationResult
+                                }
+                            }
                         }
-                        .addOnFailureListener { e ->
-                            Log.d(
-                                "MLKitVM",
-                                "detectPose() onFailureListener: $e"
-                            )
-                        }
-                        .addOnCanceledListener {
-                            Log.d(
-                                "MLKitVM",
-                                "detectPose() onCanceledListener"
-                            )
-                        }
-                        .addOnCompleteListener { result ->
-                            Log.d(
-                                "MLKitVM",
-                                "detectPose() onCompleteListener: ${result.result} || ${result.result.allPoseLandmarks}"
-                            )
-                            imageProxy.close()
-                        }
-                        .continueWith(
-                            ContextCompat.getMainExecutor(appContext)
-                        ) { task ->
-                            Log.d("MLKitVM", "task: $task")
-                            val pose = task.getResult()
-                            Log.d("MLKitVM", "pose: $pose || ${pose.allPoseLandmarks}")
-                            _detectedPose.value = pose
-                        }
+                        imageProxy.close()
+                    }
                 }
             }
         }

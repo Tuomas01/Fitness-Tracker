@@ -47,6 +47,8 @@ class TrainingViewModel @Inject constructor(
     private val _listOfExercises = MutableStateFlow<List<String>>(listOf())
     val listOfExercises: StateFlow<List<String>> = _listOfExercises.asStateFlow()
 
+    private val TAG = "TrainingVM"
+
     init {
         getAllPlans()
         //getTrainingPlan(2)
@@ -60,7 +62,7 @@ class TrainingViewModel @Inject constructor(
      * @param type Type of the plan
      */
     fun savePlanInfo(id: Int, name: String, type: String) {
-        Log.d("TrainingVM", "savePlanInfo() id: $id, name: $name, type: $type")
+        Log.d(TAG, "savePlanInfo() id: $id, name: $name, type: $type")
         _trainingPlan.update { it.copy(id = id, name = name, type = type) }
     }
 
@@ -74,7 +76,7 @@ class TrainingViewModel @Inject constructor(
     fun getAllPlans() {
         viewModelScope.launch {
             val plans = trainingRepository.getAllTrainingPlans()
-            Log.d("TrainingVM", "getAllPlans() test: $plans")
+            Log.d(TAG, "getAllPlans() test: $plans")
             if (!plans.isNullOrEmpty()) {
                 _listOfPlans.value = plans
             }
@@ -88,7 +90,7 @@ class TrainingViewModel @Inject constructor(
     fun getTrainingPlan(id: Int) {
         viewModelScope.launch {
             val plan = trainingRepository.getTrainingPlan(id)
-            Log.d("TrainingVM", "getTrainingPlan() test: $plan")
+            Log.d(TAG, "getTrainingPlan() test: $plan")
         }
     }
 
@@ -103,15 +105,15 @@ class TrainingViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val exercisesInPlans = trainingRepository.fetchAllExercisesInPlans()
-                Log.d("TrainingVM", "getAllExercisesInPlans() test: $exercisesInPlans")
+                Log.d(TAG, "getAllExercisesInPlans() test: $exercisesInPlans")
                 if (exercisesInPlans !== null) {
                     // Convert the JSON String into a JSON array using the Json.decodeFromString<>() method
                     val jsonObject = Json.decodeFromString<JsonArray>(exercisesInPlans)
                     _exercisesAndPlans.value = jsonObject
-                    //Log.d("TrainingVM", "getAllExercisesInPlans() _exercisesAndPlans value: ${_exercisesAndPlans.value}")
+                    //Log.d(TAG, "getAllExercisesInPlans() _exercisesAndPlans value: ${_exercisesAndPlans.value}")
                 }
             } catch (e: Exception) {
-                Log.d("TrainingVM", "getAllExercisesInPlans() error: $e")
+                Log.d(TAG, "getAllExercisesInPlans() error: $e")
             }
         }
     }
@@ -131,11 +133,11 @@ class TrainingViewModel @Inject constructor(
                     val exerciseList = mutableListOf<String>()
                     // Loop through the exercises and the training plans where the exercise is linked to the plans
                     for (i in _exercisesAndPlans.value) {
-                        Log.d("TrainingVM", "addExercisesToPlan() json: $i")
+                        Log.d(TAG, "addExercisesToPlan() json: $i")
                         // Save the training_plans JSON array into a variable
                         // Example of what i.jsonObject["training_plans"] returns: [{"plan_id":3, "plan_name":"Lower body"}]
                         val trainingPlans = i.jsonObject["training_plans"]
-                        //Log.d("TrainingVM", "addExercisesToPlan() name and plans: ${i.jsonObject["name"]}, ${trainingPlans?.jsonArray}}")
+                        //Log.d(TAG, "addExercisesToPlan() name and plans: ${i.jsonObject["name"]}, ${trainingPlans?.jsonArray}}")
                         /*
                          If the JSON response included data in the training_plans array,
                          loop through training_plans and if the plan_id is equal to the parameter PlanId, save the name of the exercise to a list.
@@ -147,7 +149,7 @@ class TrainingViewModel @Inject constructor(
                                     val exerciseId = i.jsonObject["id"]
                                     val yplanId = y.jsonObject["plan_id"]
                                     Log.d(
-                                        "TrainingVM", "addExercisesToPlan() nested condition: " +
+                                        TAG, "addExercisesToPlan() nested condition: " +
                                                 "$yplanId, $exerciseName $exerciseId"
                                     )
                                     exerciseList.add(exerciseName.toString())
@@ -158,7 +160,7 @@ class TrainingViewModel @Inject constructor(
                     _listOfExercises.value = exerciseList
                 }
             } catch (e: Exception) {
-                Log.d("TrainingVM", "addExercisesToPlan() error: $e")
+                Log.d(TAG, "addExercisesToPlan() error: $e")
             }
         }
     }

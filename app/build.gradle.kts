@@ -126,6 +126,10 @@ dependencies {
     // ML Kit Pose Detection
     implementation("com.google.mlkit:pose-detection:18.0.0-beta5")
 
+    // ML Kit Pose Detection classification
+    implementation("com.google.firebase:firebase-crashlytics-buildtools:3.0.7")
+    implementation("com.google.guava:guava:27.1-android")
+
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

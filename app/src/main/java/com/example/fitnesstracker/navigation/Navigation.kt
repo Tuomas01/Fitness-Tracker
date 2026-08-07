@@ -45,10 +45,10 @@ fun AppNavHost(
         }
 
         navigation(
-            startDestination = ScreenRoutes.HomeScreen.route,
+            startDestination = ScreenRoutes.TrainingScreen.route,
             route = "main"
         ) {
-            composable(route = ScreenRoutes.HomeScreen.route) { HomeScreen() }
+            //composable(route = ScreenRoutes.HomeScreen.route) { HomeScreen() }
             composable(route = ScreenRoutes.ProfileScreen.route) {
                 ProfileScreen(
                     navigateToUpdateUser = {
@@ -107,7 +107,7 @@ fun AppNavigation(
     navController: NavHostController,
 ) {
     // Specifies where the application starts on when launched
-    val startDestination = ScreenRoutes.HomeScreen
+    val startDestination = ScreenRoutes.TrainingScreen
     // Save the selected destination into a mutable object that creates an observable.
     // This value will persists thanks to the rememberSaveable and highlights the currently selected view on the bottom navigation bar
     var selectedDestination by rememberSaveable { mutableIntStateOf(startDestination.ordinal) }
@@ -118,7 +118,7 @@ fun AppNavigation(
             NavigationBar(windowInsets = NavigationBarDefaults.windowInsets) {
                 ScreenRoutes.entries.forEachIndexed { index, screenRoute ->
                     // Excludes the updateUser screen from the bottom bar
-                    if (screenRoute.route !== ScreenRoutes.UpdateUserScreen.route && screenRoute.route !== ScreenRoutes.TrainingPlanScreen.route) {
+                    if (screenRoute.route !== ScreenRoutes.UpdateUserScreen.route && screenRoute.route !== ScreenRoutes.TrainingPlanScreen.route && screenRoute.route !== ScreenRoutes.HomeScreen.route) {
                         NavigationBarItem(
                             selected = selectedDestination == index,
                             onClick = {
