@@ -60,6 +60,7 @@ public class PoseClassifierProcessor {
     private PoseClassifier poseClassifier;
     private String lastRepResult;
     private String poseName;
+    private String finalReps;
 
     @WorkerThread
     public PoseClassifierProcessor(Context context, boolean isStreamMode) {
@@ -136,11 +137,13 @@ public class PoseClassifierProcessor {
                     lastRepResult = String.format(
                             Locale.US, "%s : %d reps", repCounter.getClassName(), repsAfter);
                     poseName = repCounter.getClassName();
+                    finalReps = String.valueOf(repsAfter);
                     break;
                 }
             }
             Log.d(TAG, "testing Rep counter " + lastRepResult);
             result.add(poseName);
+            result.add(finalReps);
             result.add(lastRepResult);
         }
 

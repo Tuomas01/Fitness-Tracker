@@ -18,22 +18,25 @@ interface TrainingRepository {
     suspend fun getTrainingPlan(id: Int): TrainingPlan
     suspend fun addPlanToUser(planId: Int, userId: String)
     suspend fun fetchAllExercisesInPlans(): String?
+    suspend fun fetchAllExercisePlans(): String?
 }
 
 class TrainingRepositoryImpl @Inject constructor(
     private val postgrest: Postgrest
 ) : TrainingRepository {
 
+    private val TAG = "TrainingRepo"
+
     override suspend fun getAllTrainingPlans(): List<TrainingPlan>? {
         try {
             return withContext(Dispatchers.IO) {
                 val result = postgrest.from("training_plans")
-                    .select(columns = Columns.list("id, name, type, target_area")).decodeList<TrainingPlan>()
-                Log.d("TrainingRepo", "getAllTrainingPlans() test: $result")
+                    .select(columns = Columns.list("id, name, type, target_area, rest_time")).decodeList<TrainingPlan>()
+                Log.d(TAG, "getAllTrainingPlans() test: $result")
                 result
             }
         } catch (e: Exception) {
-            Log.d("TrainingRepo", "getAllTrainingPlans() error: $e")
+            Log.d(TAG, "getAllTrainingPlans() error: $e")
         }
         return null
     }
@@ -42,16 +45,16 @@ class TrainingRepositoryImpl @Inject constructor(
         try {
             return withContext(Dispatchers.IO) {
                 val result = postgrest.from("training_plans")
-                    .select(columns = Columns.list("id, name, type, target_area")) {
+                    .select(columns = Columns.list("id, name, type, target_area, rest_time")) {
                         filter {
                             eq("id" , id)
                         }
                 }
-                Log.d("TrainingRepo", "getTrainingPlan() test: $result \n decoding: ${result.decodeSingle<TrainingPlan>()}")
+                Log.d(TAG, "getTrainingPlan() test: $result \n decoding: ${result.decodeSingle<TrainingPlan>()}")
                 result.decodeSingle()
             }
         } catch (e: Exception) {
-            Log.d("TrainingRepo", "getTrainingPlan() error: $e")
+            Log.d(TAG, "getTrainingPlan() error: $e")
         }
         return TrainingPlan()
     }
@@ -64,12 +67,27 @@ class TrainingRepositoryImpl @Inject constructor(
         try {
             return withContext(Dispatchers.IO) {
                 val result = postgrest.from("exercises")
-                    .select(Columns.list("name, id, training_plans(plan_id:id, plan_name:name)"))
-                Log.d("TrainingRepo", "fetchAllExercisesInPlans() test: $result \n decoding: ${result.data}")
+                    .select(Columns.list("name, id, exercise_type, training_plans(plan_id:id, plan_name:name)"))
+                Log.d(TAG, "fetchAllExercisesInPlans() test: $result \n decoding: ${result.data}")
                 result.data
             }
         } catch (e: Exception) {
-            Log.d("TrainingRepo", "fetchAllExercisesInPlans() error: $e")
+            Log.d(TAG, "fetchAllExercisesInPlans() error: $e")
+            return null
+        }
+    }
+
+
+    override suspend fun fetchAllExercisePlans(): String? {
+        try {
+            return withContext(Dispatchers.IO) {
+                val result = postgrest.from("exercise_plans")
+                    .select()
+                Log.d(TAG, "fetchExerciseInPlansDetails() test: $result \n decoding: ${result.data}")
+                result.data
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "fetchExerciseInPlansDetails() error: $e")
             return null
         }
     }

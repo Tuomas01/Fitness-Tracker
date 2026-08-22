@@ -155,7 +155,7 @@ fun TrainingPlanCarousel(
                     ) {
                         IconButton(
                             onClick = {
-                                trainingViewModel.savePlanInfo(item.id, item.name, item.type)
+                                trainingViewModel.savePlanInfo(item.id, item.name, item.type, item.target_area, item.rest_time)
                                 trainingViewModel.addExercisesToPlan(item.id)
                                 navigateToPlan()
                             }

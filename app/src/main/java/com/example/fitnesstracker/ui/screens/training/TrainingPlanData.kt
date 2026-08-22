@@ -11,4 +11,5 @@ data class TrainingPlan(
     val name: String = "",
     val type: String = "",
     val target_area: String = "",
+    val rest_time: Int = 0,
 )

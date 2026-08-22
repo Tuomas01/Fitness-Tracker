@@ -3,8 +3,10 @@ package com.example.fitnesstracker.ui.screens.training
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.camera.core.SurfaceRequest
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PauseCircleOutline
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Start
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -28,19 +34,26 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +63,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.random.Random
 import com.example.fitnesstracker.ui.screens.training.mlkit.PoseOverlay
+import kotlinx.coroutines.delay
 
 /**
  * Training plan screen composable. The screen that shows after clicking on an arrow to go to a training plan on the training page.
@@ -66,6 +80,10 @@ fun TrainingPlanScreen(
 ) {
     val selectedPlan by trainingViewModel.trainingPlan.collectAsState()
     val exercises by trainingViewModel.listOfExercises.collectAsState()
+    val exerciseNames by trainingViewModel.listOfExerciseNames.collectAsState()
+    val exerciseDuration by trainingViewModel.exerciseDuration.collectAsState()
+    val exerciseReps by trainingViewModel.exerciseRepsList.collectAsState()
+    val exercisesAndPlans by trainingViewModel.exercisesAndPlans.collectAsState()
     val inputImage by cameraViewModel.inputImage.collectAsStateWithLifecycle()
 
     // Get the current activity from LocalContext
@@ -88,6 +106,35 @@ fun TrainingPlanScreen(
 
     val screenWidth = remember { mutableFloatStateOf(1f) }
     val screenHeight = remember { mutableFloatStateOf(1f) }
+
+    val currentExercise = remember { mutableIntStateOf(0) }
+    val secondsTillNextExercise = remember {
+        mutableIntStateOf(
+            exerciseDuration?.get(exerciseNames[currentExercise.intValue]) ?: 30
+        )
+    }
+    val delay = remember { mutableLongStateOf(30000) }
+
+    // Variables for timer
+    var shouldIncrement by rememberSaveable { mutableStateOf(false) }
+    var timerActive by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(shouldIncrement) {
+        while (shouldIncrement) {
+            delay(delay.longValue)
+            currentExercise.intValue++
+            secondsTillNextExercise.intValue =
+                exerciseDuration?.get(exerciseNames[currentExercise.intValue]) ?: 30
+            delay.longValue = (secondsTillNextExercise.intValue.toString() + 0 + 0 + 0).toLong()
+        }
+    }
+
+    LaunchedEffect(timerActive) {
+        while (timerActive) {
+            delay(1000)
+            secondsTillNextExercise.intValue--
+        }
+    }
 
     fun requestCameraPermissions() {
         if (!hasPermissions()) {
@@ -142,7 +189,7 @@ fun TrainingPlanScreen(
                         inputImage!!.height,
                         screenWidth.floatValue + 450,
                         screenHeight.floatValue - 475
-                        )
+                    )
                 }
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -150,15 +197,71 @@ fun TrainingPlanScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (poseDetails.isNotEmpty()) {
-                        Text("Pose details: \n${poseDetails[1]}\n${poseDetails[2]}")
+                        Text("Pose details: ${poseDetails[1]} \n${poseDetails[2]}\n${poseDetails[3]}")
                     }
-                    Button(
-                        onClick = {
-                            cameraActive.value = false
-                        },
-                        modifier = Modifier.padding(8.dp)
+                    Column(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                            .border(2.dp, MaterialTheme.colorScheme.surfaceBright)
+                            .padding(8.dp)
+                            .fillMaxWidth()
                     ) {
-                        Text("Disable camera")
+                        Text("Current exercise: ${exercises[currentExercise.intValue]}\nNext exercise in ${secondsTillNextExercise.intValue}s: ${exercises[currentExercise.intValue + 1]}")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    shouldIncrement = true
+                                    timerActive = true
+                                    println(
+                                        "xpdp ${currentExercise.intValue}, ${
+                                            exerciseDuration?.get(
+                                                exerciseNames[currentExercise.intValue]
+                                            )
+                                        }, ${exerciseNames[currentExercise.intValue]}, $exerciseDuration"
+                                    )
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.PlayCircle,
+                                    contentDescription = "Start icon indicating starting the timer"
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    shouldIncrement = false
+                                    timerActive = false
+                                    println("xpdpf $poseDetails")
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.PauseCircleOutline,
+                                    contentDescription = "Pause icon indicating pausing the timer"
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    currentExercise.intValue = 0
+                                    secondsTillNextExercise.intValue = 30
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.RestartAlt,
+                                    contentDescription = "Restart icon indicating restarting the plan"
+                                )
+                            }
+                            Button(
+                                onClick = {
+                                    cameraActive.value = false
+                                },
+                                modifier = Modifier.padding(8.dp)
+                            ) {
+                                Text("Disable camera")
+                            }
+                        }
                     }
                 }
             }
@@ -191,36 +294,44 @@ fun TrainingPlanScreen(
                                 ) {
                                     // Use the substring function to remove quotes from the string
                                     Text(
-                                        i.substring(1, i.length - 1),
+                                        i,
                                         fontSize = 24.sp
                                     )
                                     HorizontalDivider(thickness = 2.dp)
                                 }
                             }
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text(
+                                    modifier = Modifier
+                                        .align(Alignment.Start)
+                                        .padding(top = 20.dp),
+                                    text = "Rest time between exercises: ${selectedPlan.rest_time}S"
+                                )
+                            }
                         }
-                    }
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    verticalArrangement = Arrangement.Bottom,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Button(
-                        onClick = {
-                            requestCameraPermissions()
-                            cameraActive.value = true
-                        },
-                        modifier = Modifier
-                            .padding(8.dp)
-                    ) {
-                        Row() {
-                            Text("Start plan")
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "Camera icon",
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            verticalArrangement = Arrangement.Bottom,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Button(
+                                onClick = {
+                                    requestCameraPermissions()
+                                    cameraActive.value = true
+                                },
+                                modifier = Modifier
+                                    .padding(8.dp)
+                            ) {
+                                Row() {
+                                    Text("Start plan")
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = "Camera icon",
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
