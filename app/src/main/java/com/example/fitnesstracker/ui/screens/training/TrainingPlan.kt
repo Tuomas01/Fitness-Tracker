@@ -64,6 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.random.Random
 import com.example.fitnesstracker.ui.screens.training.mlkit.PoseOverlay
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
 
 /**
  * Training plan screen composable. The screen that shows after clicking on an arrow to go to a training plan on the training page.
@@ -79,11 +80,7 @@ fun TrainingPlanScreen(
     cameraViewModel: CameraViewModel = hiltViewModel(),
 ) {
     val selectedPlan by trainingViewModel.trainingPlan.collectAsState()
-    val exercises by trainingViewModel.listOfExercises.collectAsState()
-    val exerciseNames by trainingViewModel.listOfExerciseNames.collectAsState()
-    val exerciseDuration by trainingViewModel.exerciseDuration.collectAsState()
-    val exerciseReps by trainingViewModel.exerciseRepsList.collectAsState()
-    val exercisesAndPlans by trainingViewModel.exercisesAndPlans.collectAsState()
+    val exerciseDetails by trainingViewModel.exerciseList.collectAsState()
     val inputImage by cameraViewModel.inputImage.collectAsStateWithLifecycle()
 
     // Get the current activity from LocalContext
@@ -108,10 +105,9 @@ fun TrainingPlanScreen(
     val screenHeight = remember { mutableFloatStateOf(1f) }
 
     val currentExercise = remember { mutableIntStateOf(0) }
+    val exercise = Json.decodeFromString<CustomExercisePlans>(exerciseDetails?.get(currentExercise.intValue).toString())
     val secondsTillNextExercise = remember {
-        mutableIntStateOf(
-            exerciseDuration?.get(exerciseNames[currentExercise.intValue]) ?: 30
-        )
+        mutableIntStateOf(selectedPlan.rest_time)
     }
     val delay = remember { mutableLongStateOf(30000) }
 
@@ -123,16 +119,17 @@ fun TrainingPlanScreen(
         while (shouldIncrement) {
             delay(delay.longValue)
             currentExercise.intValue++
-            secondsTillNextExercise.intValue =
-                exerciseDuration?.get(exerciseNames[currentExercise.intValue]) ?: 30
+            secondsTillNextExercise.intValue = selectedPlan.rest_time
             delay.longValue = (secondsTillNextExercise.intValue.toString() + 0 + 0 + 0).toLong()
+            shouldIncrement = false
+            timerActive = false
         }
     }
 
     LaunchedEffect(timerActive) {
         while (timerActive) {
-            delay(1000)
             secondsTillNextExercise.intValue--
+            delay(1000)
         }
     }
 
@@ -206,7 +203,7 @@ fun TrainingPlanScreen(
                             .padding(8.dp)
                             .fillMaxWidth()
                     ) {
-                        Text("Current exercise: ${exercises[currentExercise.intValue]}\nNext exercise in ${secondsTillNextExercise.intValue}s: ${exercises[currentExercise.intValue + 1]}")
+                        Text("Current exercise: ${exercise.exercise_name}\nNext exercise in ${secondsTillNextExercise.intValue}s: ${exerciseDetails?.get(currentExercise.intValue + 1)["exercise_name"]}")
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -214,14 +211,18 @@ fun TrainingPlanScreen(
                         ) {
                             IconButton(
                                 onClick = {
-                                    shouldIncrement = true
-                                    timerActive = true
+                                    if (shouldIncrement && timerActive) {
+                                        shouldIncrement = false
+                                        timerActive = false
+                                        currentExercise.intValue++
+                                        secondsTillNextExercise.intValue = selectedPlan.rest_time
+                                    } else {
+                                        shouldIncrement = true
+                                        timerActive = true
+                                    }
                                     println(
-                                        "xpdp ${currentExercise.intValue}, ${
-                                            exerciseDuration?.get(
-                                                exerciseNames[currentExercise.intValue]
-                                            )
-                                        }, ${exerciseNames[currentExercise.intValue]}, $exerciseDuration"
+                                        "${currentExercise.intValue}, ${exerciseDetails?.get(currentExercise.intValue)["set_rest_time"]}, " +
+                                                "${exerciseDetails?.get(currentExercise.intValue)},"
                                     )
                                 }
                             ) {
@@ -273,7 +274,7 @@ fun TrainingPlanScreen(
                     .padding(innerPadding),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (!exercises.isEmpty()) {
+                if (!exerciseDetails.isNullOrEmpty()) {
                     ElevatedCard(
                         modifier = Modifier
                             .padding(8.dp)
@@ -288,13 +289,13 @@ fun TrainingPlanScreen(
                                 .padding(16.dp)
                                 .fillMaxSize()
                         ) {
-                            for (i in exercises) {
+                            for (i in exerciseDetails) {
                                 Column(
                                     modifier = Modifier.padding(8.dp)
                                 ) {
                                     // Use the substring function to remove quotes from the string
                                     Text(
-                                        i,
+                                        i["exercise_name"].toString(),
                                         fontSize = 24.sp
                                     )
                                     HorizontalDivider(thickness = 2.dp)

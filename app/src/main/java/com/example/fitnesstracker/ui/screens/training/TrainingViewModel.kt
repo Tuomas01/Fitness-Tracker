@@ -17,6 +17,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.json.JSONObject
 import javax.inject.Inject
 
 /**
@@ -50,16 +51,9 @@ class TrainingViewModel @Inject constructor(
 
     private val _sets = MutableStateFlow<Int>(0)
     private val _reps = MutableStateFlow<Int>(0)
-    private val _exerciseRepsList = MutableStateFlow<List<Int>>(listOf())
-    val exerciseRepsList : StateFlow<List<Int>> = _exerciseRepsList.asStateFlow()
     private val _setRestTime = MutableStateFlow<Int>(0)
-    private val _exerciseDuration = MutableStateFlow<Map<String, Int>?>(null)
-    val exerciseDuration: StateFlow<Map<String, Int>?> = _exerciseDuration.asStateFlow()
-
-    private val _listOfExercises = MutableStateFlow<List<String>>(listOf())
-    val listOfExercises: StateFlow<List<String>> = _listOfExercises.asStateFlow()
-    private val _listOfExerciseNames = MutableStateFlow<List<String>>(listOf())
-    val listOfExerciseNames: StateFlow<List<String>> = _listOfExerciseNames.asStateFlow()
+    private val _exerciseList = MutableStateFlow<List<JSONObject>?>(null)
+    val exerciseList: StateFlow<List<JSONObject>?> = _exerciseList.asStateFlow()
 
     private val TAG = "TrainingVM"
 
@@ -169,90 +163,80 @@ class TrainingViewModel @Inject constructor(
      * Loops through the _exercisesAndPlans variable if the value is not empty.
      * The variable's value is either an empty JSON array by default or a JSON array from getAllExercisesInPlans() function.
      *
-     * Has a nested loop to go through the training plans in which the exercise was found in and if the training plan id is the same as the parameter planId,
-     * saves all the exercise names into a list.
+     * Has 2 nested loop that go through the training plans in which the exercise was found in, and if the training plan id is the same as the parameter planId, the function
+     * saves all the exercise details into a list as Json.
      */
     fun addExercisesToPlan(planId: Int) {
         viewModelScope.launch {
             try {
-                _listOfExercises.value = mutableListOf<String>()
                 if (!_exercisesAndPlans.value.isEmpty()) {
-                    val exerciseList = mutableListOf<String>()
-                    val exerciseNamesList = mutableListOf<String>()
-                    val exerciseReps = mutableListOf<Int>()
-                    val holdRepsHashMap = mutableMapOf<String, Int>()
+                    val exerciseList = mutableListOf<JSONObject>()
+                    val customExercisePlansSet = mutableMapOf<String, String>()
                     // Loop through the exercises and the training plans where the exercise is linked to the plans
                     for (i in _exercisesAndPlans.value) {
                         Log.d(TAG, "addExercisesToPlan() json: $i")
                         // Save the training_plans JSON array into a variable
                         // Example of what i.jsonObject["training_plans"] returns: [{"plan_id":3, "plan_name":"Lower body"}]
-                        val trainingPlans = i.jsonObject["training_plans"]
+                        val exerciseName = i.jsonObject["name"]
                         val exerciseId = i.jsonObject["id"]
-                        val exerciseType = i.jsonObject["exercise_type"].toString()
-                        Log.d(TAG, "addExercisesToPlan() json id: $exerciseId")
+                        val exerciseType = i.jsonObject["exercise_type"]
+                        val trainingPlans = i.jsonObject["training_plans"]
+                        Log.d(
+                            TAG,
+                            "addExercisesToPlan() json variables: $exerciseName, $exerciseId, $exerciseType, $trainingPlans"
+                        )
                         //Log.d(TAG, "addExercisesToPlan() name and plans: ${i.jsonObject["name"]}, ${trainingPlans?.jsonArray}}")
                         /*
                          If the JSON response included data in the training_plans array,
-                         loop through training_plans and if the plan_id is equal to the parameter PlanId, save the name of the exercise to a list.
+                         loop through training_plans and if the plan_id is equal to the parameter planId, save the exercises and their details into a list.
                          */
                         if (!trainingPlans?.jsonArray.isNullOrEmpty()) {
                             for (y in trainingPlans.jsonArray) {
-                                if (y.jsonObject["plan_id"].toString().toInt() == planId) {
-                                    val exerciseName = i.jsonObject["name"]
-                                    val exerciseId = i.jsonObject["id"]
-                                    val yplanId = y.jsonObject["plan_id"]
+                                val yPlanId = y.jsonObject["plan_id"]
+                                if (yPlanId.toString().toInt() == planId &&
+                                    _allExercisesInPlansDetails.value.isNotEmpty()
+                                ) {
                                     Log.d(
                                         TAG, "addExercisesToPlan() nested condition: " +
-                                                "$yplanId, $exerciseName $exerciseId"
+                                                "$y, $yPlanId, $exerciseName $exerciseId"
                                     )
                                     // Loop through the _allExercisesInPlansDetails value, which is a JsonArray.
                                     // Get the sets, reps and set rest time values where the plan id and exercise id matches the selected plan's ids
-                                    if (_allExercisesInPlansDetails.value.isNotEmpty()) {
-                                        for (z in _allExercisesInPlansDetails.value) {
-                                            Log.d(TAG, "addExercisesToPlan() :DDDD $z")
-                                            if (z.jsonObject["plan_id"] == yplanId && z.jsonObject["exercise_id"] == exerciseId) {
-                                                Log.d(TAG, "addExercisesToPlan() xddd ${z.jsonObject["plan_id"]} :D $z")
-                                                _sets.value =
-                                                    z.jsonObject["sets"].toString().toInt()
-                                                _reps.value =
-                                                    z.jsonObject["reps"].toString().toInt()
-                                                _setRestTime.value =
-                                                    z.jsonObject["set_rest_time"].toString().toInt()
-                                            }
-                                            Log.d(TAG, "addExercisesToPlan() xdp ${_sets.value}, ${_reps.value}, ${_setRestTime.value}")
+                                    for (z in _allExercisesInPlansDetails.value) {
+                                        val zExerciseName = i.jsonObject["name"]
+                                        if (z.jsonObject["plan_id"] == yPlanId && z.jsonObject["exercise_id"] == exerciseId) {
+                                            _sets.value =
+                                                z.jsonObject["sets"].toString().toInt()
+                                            _reps.value =
+                                                z.jsonObject["reps"].toString().toInt()
+                                            _setRestTime.value =
+                                                z.jsonObject["set_rest_time"].toString().toInt()
+
+                                            // Removes quotes from the start and end of the string
+                                            val trimmedExerciseType = exerciseType.toString().drop(1).dropLast(1)
+                                            val trimmedExerciseName = exerciseName.toString().drop(1).dropLast(1)
+                                            Log.d(
+                                                TAG,
+                                                "addExercisesToPlan() exercise details: name: $trimmedExerciseName, id: $exerciseId, type: " +
+                                                        "$trimmedExerciseType, sets: ${_sets.value}, reps: ${_reps.value}, rest time between sets: ${_setRestTime.value}"
+                                            )
+                                            customExercisePlansSet["plan_id"] = yPlanId.toString()
+                                            customExercisePlansSet["exercise_name"] = trimmedExerciseName
+                                            customExercisePlansSet["exercise_id"] = exerciseId.toString()
+                                            customExercisePlansSet["exercise_type"] = trimmedExerciseType
+                                            customExercisePlansSet["sets"] = _sets.value.toString()
+                                            customExercisePlansSet["reps"] = _reps.value.toString()
+                                            customExercisePlansSet["set_rest_time"] = _setRestTime.value.toString()
+                                            val exerciseDetailsAsJson = JSONObject(customExercisePlansSet)
+                                            exerciseList.add(exerciseDetailsAsJson)
                                         }
                                     }
-                                    // Removes quotes from the start and end of the string
-                                    val trimmedExerciseType = exerciseType.drop(1).dropLast(1)
-                                    val trimmedExerciseName = exerciseName.toString().drop(1).dropLast(1)
-                                    if (_sets.value > 1) {
-                                        if (trimmedExerciseType == "Dynamic") {
-                                            exerciseList.add("$trimmedExerciseName: ${_sets.value} sets, ${_reps.value} reps per set.\nRest time between sets: ${_setRestTime.value}s")
-                                        } else {
-                                            exerciseList.add("$trimmedExerciseName: ${_sets.value} sets, ${_reps.value}s per set.\nRest time between sets: ${_setRestTime.value}s")
-                                        }
-                                    } else {
-                                        if (trimmedExerciseType == "Dynamic") {
-                                            exerciseList.add("$trimmedExerciseName: ${_sets.value} set, ${_reps.value} reps per set")
-                                        } else {
-                                            exerciseList.add("$trimmedExerciseName: ${_sets.value} set, ${_reps.value}s per set")
-                                        }
-                                    }
-                                    if (trimmedExerciseType != "Dynamic") {
-                                        println("xpdpdd $trimmedExerciseName, ${_reps.value}")
-                                        holdRepsHashMap[trimmedExerciseName] = _reps.value
-                                        println("xpdpdd $holdRepsHashMap")
-                                    }
-                                    exerciseNamesList.add(trimmedExerciseName)
-                                    exerciseReps.add(_reps.value)
                                 }
                             }
                         }
                     }
-                    _listOfExercises.value = exerciseList
-                    _listOfExerciseNames.value = exerciseNamesList
-                    _exerciseDuration.value = holdRepsHashMap
-                    _exerciseRepsList.value = exerciseReps
+                    _exerciseList.value = exerciseList
+                    Log.d(TAG, "addExercisesToPlan() exercise details as json: ${_exerciseList.value}")
                 }
             } catch (e: Exception) {
                 Log.d(TAG, "addExercisesToPlan() error: $e")
