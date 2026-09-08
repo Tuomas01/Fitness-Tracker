@@ -54,8 +54,8 @@ fun AppNavHost(
                     navigateToUpdateUser = {
                         navController.navigate(route = ScreenRoutes.UpdateUserScreen.route)
                     },
-                    navigateToHome = {
-                        navController.navigate(route = ScreenRoutes.HomeScreen.route)
+                    navigateToStartingScreen = {
+                        navController.navigate(route = ScreenRoutes.TrainingScreen.route)
                     },
                     clearBackStack = {
                         navController.popBackStack()

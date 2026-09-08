@@ -56,7 +56,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProfileScreen(
     navigateToUpdateUser: () -> Unit,
-    navigateToHome: () -> Unit,
+    navigateToStartingScreen: () -> Unit,
     clearBackStack: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
@@ -94,7 +94,7 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            ProfileIcon(clearBackStack, navigateToHome)
+            ProfileIcon(clearBackStack, navigateToStartingScreen)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -126,7 +126,7 @@ fun ProfileScreen(
 @Composable
 fun ProfileIcon(
     clearBackStack: () -> Unit,
-    navigateToHome: () -> Unit,
+    navigateToStartingScreen: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     Box(
@@ -158,7 +158,7 @@ fun ProfileIcon(
                 onClick = {
                     viewModel.signOut()
                     clearBackStack()
-                    navigateToHome()
+                    navigateToStartingScreen()
                 },
                 modifier = Modifier
             ) {

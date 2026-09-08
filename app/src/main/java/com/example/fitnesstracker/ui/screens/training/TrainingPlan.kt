@@ -115,9 +115,10 @@ fun TrainingPlanScreen(
     val screenWidth = remember { mutableFloatStateOf(1f) }
     val screenHeight = remember { mutableFloatStateOf(1f) }
 
-    val exercise = Json.decodeFromString<CustomExercisePlans>(
+    // This was causing the app to crash when navigating away from the training plan
+    /*val exercise = Json.decodeFromString<CustomExercisePlans>(
         exerciseDetails?.get(currentExercise).toString()
-    )
+    )*/
 
     fun requestCameraPermissions() {
         if (!hasPermissions()) {
@@ -191,7 +192,7 @@ fun TrainingPlanScreen(
                             .fillMaxWidth()
                     ) {
                         Text(
-                            "Current exercise: ${exercise.exercise_name}\nNext exercise in ${secondsUntilNextExercise}s: ${
+                            "Current exercise: ${exerciseDetails?.get(currentExercise)["exercise_name"]}\nNext exercise in ${secondsUntilNextExercise}s: ${
                                 exerciseDetails?.get(
                                     currentExercise + 1
                                 )["exercise_name"]
