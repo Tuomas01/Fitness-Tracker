@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.SystemClock
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.SurfaceRequest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +23,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.FlipCameraAndroid
 import androidx.compose.material.icons.filled.PauseCircleOutline
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.RestartAlt
@@ -65,6 +68,7 @@ import kotlin.random.Random
 import com.example.fitnesstracker.ui.screens.training.mlkit.PoseOverlay
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
+import java.security.Permission
 
 /**
  * Training plan screen composable. The screen that shows after clicking on an arrow to go to a training plan on the training page.
@@ -81,6 +85,16 @@ fun TrainingPlanScreen(
 ) {
     val selectedPlan by trainingViewModel.trainingPlan.collectAsState()
     val exerciseDetails by trainingViewModel.exerciseList.collectAsState()
+
+    // Boolean values from training viewmodel. The values are changed with change value functions in the view model
+    val cameraActive by trainingViewModel.cameraActive.collectAsState()
+    val hasPermissionsState by trainingViewModel.hasPermissions.collectAsState()
+    val shouldIncrement by trainingViewModel.shouldIncrement.collectAsState()
+    val timerActive by trainingViewModel.timerActive.collectAsState()
+
+    val secondsUntilNextExercise by trainingViewModel.secondsUntilNextExercise.collectAsState()
+    val currentExercise by trainingViewModel.currentExercise.collectAsState()
+
     val inputImage by cameraViewModel.inputImage.collectAsStateWithLifecycle()
 
     // Get the current activity from LocalContext
@@ -98,40 +112,12 @@ fun TrainingPlanScreen(
         ContextCompat.checkSelfPermission(activity, it) == PackageManager.PERMISSION_GRANTED
     }
 
-    val cameraActive = remember { mutableStateOf(false) }
-    val hasPermissionsState = remember { mutableStateOf(hasPermissions()) }
-
     val screenWidth = remember { mutableFloatStateOf(1f) }
     val screenHeight = remember { mutableFloatStateOf(1f) }
 
-    val currentExercise = remember { mutableIntStateOf(0) }
-    val exercise = Json.decodeFromString<CustomExercisePlans>(exerciseDetails?.get(currentExercise.intValue).toString())
-    val secondsTillNextExercise = remember {
-        mutableIntStateOf(selectedPlan.rest_time)
-    }
-    val delay = remember { mutableLongStateOf(30000) }
-
-    // Variables for timer
-    var shouldIncrement by rememberSaveable { mutableStateOf(false) }
-    var timerActive by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(shouldIncrement) {
-        while (shouldIncrement) {
-            delay(delay.longValue)
-            currentExercise.intValue++
-            secondsTillNextExercise.intValue = selectedPlan.rest_time
-            delay.longValue = (secondsTillNextExercise.intValue.toString() + 0 + 0 + 0).toLong()
-            shouldIncrement = false
-            timerActive = false
-        }
-    }
-
-    LaunchedEffect(timerActive) {
-        while (timerActive) {
-            secondsTillNextExercise.intValue--
-            delay(1000)
-        }
-    }
+    val exercise = Json.decodeFromString<CustomExercisePlans>(
+        exerciseDetails?.get(currentExercise).toString()
+    )
 
     fun requestCameraPermissions() {
         if (!hasPermissions()) {
@@ -139,7 +125,8 @@ fun TrainingPlanScreen(
                 activity, permissions.toTypedArray(), permissionsRequestCode
             )
         } else {
-            hasPermissionsState.value = true
+            trainingViewModel.allowPermissions()
+            trainingViewModel.changeCameraActiveValue()
         }
     }
     Scaffold(
@@ -169,7 +156,7 @@ fun TrainingPlanScreen(
             )
         }
     ) { innerPadding ->
-        if (hasPermissionsState.value && cameraActive.value) {
+        if (hasPermissionsState && cameraActive) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -203,7 +190,13 @@ fun TrainingPlanScreen(
                             .padding(8.dp)
                             .fillMaxWidth()
                     ) {
-                        Text("Current exercise: ${exercise.exercise_name}\nNext exercise in ${secondsTillNextExercise.intValue}s: ${exerciseDetails?.get(currentExercise.intValue + 1)["exercise_name"]}")
+                        Text(
+                            "Current exercise: ${exercise.exercise_name}\nNext exercise in ${secondsUntilNextExercise}s: ${
+                                exerciseDetails?.get(
+                                    currentExercise + 1
+                                )["exercise_name"]
+                            }"
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -212,17 +205,19 @@ fun TrainingPlanScreen(
                             IconButton(
                                 onClick = {
                                     if (shouldIncrement && timerActive) {
-                                        shouldIncrement = false
-                                        timerActive = false
-                                        currentExercise.intValue++
-                                        secondsTillNextExercise.intValue = selectedPlan.rest_time
+                                        if (secondsUntilNextExercise <= (selectedPlan.rest_time - 2)) {
+                                            trainingViewModel.skipExercise()
+                                        }
                                     } else {
-                                        shouldIncrement = true
-                                        timerActive = true
+                                        trainingViewModel.starTimer()
                                     }
                                     println(
-                                        "${currentExercise.intValue}, ${exerciseDetails?.get(currentExercise.intValue)["set_rest_time"]}, " +
-                                                "${exerciseDetails?.get(currentExercise.intValue)},"
+                                        "${currentExercise}, ${
+                                            exerciseDetails?.get(
+                                                currentExercise
+                                            )["set_rest_time"]
+                                        }, " +
+                                                "${exerciseDetails?.get(currentExercise)},"
                                     )
                                 }
                             ) {
@@ -231,10 +226,10 @@ fun TrainingPlanScreen(
                                     contentDescription = "Start icon indicating starting the timer"
                                 )
                             }
+                            /*
                             IconButton(
                                 onClick = {
-                                    shouldIncrement = false
-                                    timerActive = false
+                                    trainingViewModel.stopTimer()
                                     println("xpdpf $poseDetails")
                                 }
                             ) {
@@ -242,11 +237,10 @@ fun TrainingPlanScreen(
                                     Icons.Default.PauseCircleOutline,
                                     contentDescription = "Pause icon indicating pausing the timer"
                                 )
-                            }
+                            }*/
                             IconButton(
                                 onClick = {
-                                    currentExercise.intValue = 0
-                                    secondsTillNextExercise.intValue = 30
+                                    trainingViewModel.resetCurrentExercise()
                                 }
                             ) {
                                 Icon(
@@ -256,11 +250,21 @@ fun TrainingPlanScreen(
                             }
                             Button(
                                 onClick = {
-                                    cameraActive.value = false
+                                    trainingViewModel.changeCameraActiveValue()
                                 },
                                 modifier = Modifier.padding(8.dp)
                             ) {
                                 Text("Disable camera")
+                            }
+                            IconButton(
+                                onClick = {
+                                    cameraViewModel.changeCamera()
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.Cameraswitch,
+                                    contentDescription = "Switch camera icon indicating swapping between back and front camera"
+                                )
                             }
                         }
                     }
@@ -319,7 +323,6 @@ fun TrainingPlanScreen(
                             Button(
                                 onClick = {
                                     requestCameraPermissions()
-                                    cameraActive.value = true
                                 },
                                 modifier = Modifier
                                     .padding(8.dp)

@@ -7,7 +7,9 @@ import android.util.Log
 import android.util.Size
 import android.widget.Toast
 import androidx.annotation.OptIn
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA
+import androidx.camera.core.CameraSelector.DEFAULT_FRONT_CAMERA
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -61,6 +63,9 @@ class CameraViewModel @Inject constructor(
      */
     val surfaceRequests: StateFlow<SurfaceRequest?> = _surfaceRequests.asStateFlow()
 
+    private val _cameraSelection = MutableStateFlow<CameraSelector>(DEFAULT_FRONT_CAMERA)
+    val cameraSelection: StateFlow<CameraSelector> = _cameraSelection.asStateFlow()
+
     private val _inputImage = MutableStateFlow<InputImage?>(null)
     val inputImage: StateFlow<InputImage?> = _inputImage.asStateFlow()
 
@@ -71,6 +76,14 @@ class CameraViewModel @Inject constructor(
     val classificationResult: StateFlow<List<String>> = _classificationResult.asStateFlow()
 
     private val TAG = "MLKitVM"
+
+    fun changeCamera() {
+        if (_cameraSelection.value == DEFAULT_FRONT_CAMERA) {
+            _cameraSelection.value = DEFAULT_BACK_CAMERA
+        } else {
+            _cameraSelection.value = DEFAULT_FRONT_CAMERA
+        }
+    }
 
     /**
      * Builds a new camera preview and uses the setSurfaceProvider function to provide a surface to the preview.
@@ -104,7 +117,7 @@ class CameraViewModel @Inject constructor(
      * @param lifecycleOwner the lifecycle owner of the app where the camera preview will be bound to
      */
     @OptIn(ExperimentalGetImage::class)
-    suspend fun bindToCamera(lifecycleOwner: LifecycleOwner) {
+    suspend fun bindToCamera(lifecycleOwner: LifecycleOwner, cameraState: CameraSelector) {
         // Start analyzing the images from camera's stream. imageProxy is a reference to the latest image
         imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(appContext)) { imageProxy ->
 
@@ -145,7 +158,7 @@ class CameraViewModel @Inject constructor(
 
         val cameraProvider = ProcessCameraProvider.awaitInstance(appContext)
         cameraProvider.bindToLifecycle(
-            lifecycleOwner, DEFAULT_BACK_CAMERA, imageAnalysis, cameraPreview
+            lifecycleOwner, cameraState, imageAnalysis, cameraPreview
         )
 
         // When the lifecycle ends, unbinds all the camera useCases from the lifecycle provider and removes the from CameraX

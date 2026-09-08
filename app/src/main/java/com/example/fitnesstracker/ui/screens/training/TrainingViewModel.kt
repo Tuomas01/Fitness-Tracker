@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fitnesstracker.supabase.TrainingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +39,21 @@ class TrainingViewModel @Inject constructor(
     private val _hasPermissions = MutableStateFlow(false)
     val hasPermissions: StateFlow<Boolean> = _hasPermissions.asStateFlow()
 
+    private val _cameraActive = MutableStateFlow(false)
+    val cameraActive: StateFlow<Boolean> = _cameraActive.asStateFlow()
+
+    private val _shouldIncrement = MutableStateFlow(false)
+    val shouldIncrement: StateFlow<Boolean> = _shouldIncrement.asStateFlow()
+
+    private val _timerActive = MutableStateFlow(false)
+    val timerActive: StateFlow<Boolean> = _timerActive.asStateFlow()
+
+    private val _secondsUntilNextExercise = MutableStateFlow<Int>(0)
+    val secondsUntilNextExercise: StateFlow<Int> = _secondsUntilNextExercise.asStateFlow()
+
+    private val _currentExercise = MutableStateFlow<Int>(0)
+    val currentExercise: StateFlow<Int> = _currentExercise.asStateFlow()
+
     private val _listOfPlans = MutableStateFlow<List<TrainingPlan>>(listOf())
     val listOfPlans: StateFlow<List<TrainingPlan>> = _listOfPlans.asStateFlow()
 
@@ -57,12 +73,33 @@ class TrainingViewModel @Inject constructor(
 
     private val TAG = "TrainingVM"
 
+    // Call these functions when the viewModel is created
     init {
         getAllPlans()
         //getTrainingPlan(2)
         getAllExercisesInPlans()
         getAllExercisePlans()
     }
+
+    /**
+     * Loops through all the plans and saves the plans that match the value with the given parameter into a mutable list of TrainingPlans.
+     * @param type String that refers to the type of the plan.
+     * @return A list of TrainingPlans
+     */
+    fun filterTrainingPlans(type: String): List<TrainingPlan> {
+        val filteredList = mutableListOf<TrainingPlan>()
+        viewModelScope.launch {
+            for (i in _listOfPlans.value) {
+                if (i.type == type || i.type.contains(type)) {
+                    filteredList.add(i)
+                    _secondsUntilNextExercise.value = i.rest_time
+                }
+            }
+        }
+        return filteredList
+    }
+
+    // Functions for updating stateFlow variables' values
 
     /**
      * Saves the info of a selected plan to the _trainingPlan variable by calling the update function with the given values.
@@ -88,9 +125,69 @@ class TrainingViewModel @Inject constructor(
         }
     }
 
+    fun starTimer() {
+        changeShouldIncrementValue(true)
+        changeTimerActiveValue(true)
+        viewModelScope.launch {
+            while (_timerActive.value) {
+                countdownSecondsUntilNextExercise()
+                if (_secondsUntilNextExercise.value == 0) {
+                    incrementCurrentExercise()
+                    addSecondsUntilNextExercise(_trainingPlan.value.rest_time)
+                    changeShouldIncrementValue(false)
+                    changeTimerActiveValue(false)
+                }
+                delay(1000)
+            }
+        }
+    }
+
+    fun stopTimer() {
+        changeShouldIncrementValue(false)
+        changeTimerActiveValue(false)
+    }
+
+    fun skipExercise() {
+        stopTimer()
+        incrementCurrentExercise()
+        addSecondsUntilNextExercise(_trainingPlan.value.rest_time)
+    }
+
     fun allowPermissions() {
         _hasPermissions.value = true
     }
+
+    fun changeCameraActiveValue() {
+        _cameraActive.value = !_cameraActive.value
+    }
+
+    fun countdownSecondsUntilNextExercise() {
+        _secondsUntilNextExercise.value--
+    }
+
+    fun addSecondsUntilNextExercise(seconds: Int) {
+        _secondsUntilNextExercise.value = seconds
+    }
+
+    fun incrementCurrentExercise() {
+        _currentExercise.value++
+    }
+
+    fun resetCurrentExercise() {
+        stopTimer()
+        _currentExercise.value = 0
+        addSecondsUntilNextExercise(_trainingPlan.value.rest_time)
+    }
+
+    fun changeShouldIncrementValue(newShouldIncrementValue: Boolean) {
+        _shouldIncrement.value = newShouldIncrementValue
+    }
+
+    fun changeTimerActiveValue(newTimerActiveValue: Boolean) {
+        _timerActive.value = newTimerActiveValue
+    }
+
+    // Functions related to database operations utilizing TrainingRepository.kt
 
     /**
      * Uses the trainingRepository function getAllTrainingPlans() to retrieve all training plans from the database and saves it to a variable.
@@ -242,22 +339,5 @@ class TrainingViewModel @Inject constructor(
                 Log.d(TAG, "addExercisesToPlan() error: $e")
             }
         }
-    }
-
-    /**
-     * Loops through all the plans and saves the plans that match the value with the given parameter into a mutable list of TrainingPlans.
-     * @param type String that refers to the type of the plan.
-     * @return A list of TrainingPlans
-     */
-    fun filterTrainingPlans(type: String): List<TrainingPlan> {
-        val filteredList = mutableListOf<TrainingPlan>()
-        viewModelScope.launch {
-            for (i in _listOfPlans.value) {
-                if (i.type == type || i.type.contains(type)) {
-                    filteredList.add(i)
-                }
-            }
-        }
-        return filteredList
     }
 }
