@@ -24,11 +24,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.CloseFullscreen
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.FlipCameraAndroid
+import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.PauseCircleOutline
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Start
+import androidx.compose.material.icons.filled.SwapHorizontalCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -91,11 +97,13 @@ fun TrainingPlanScreen(
     val hasPermissionsState by trainingViewModel.hasPermissions.collectAsState()
     val shouldIncrement by trainingViewModel.shouldIncrement.collectAsState()
     val timerActive by trainingViewModel.timerActive.collectAsState()
+    val enabledButton by trainingViewModel.buttonEnabled.collectAsState()
 
     val secondsUntilNextExercise by trainingViewModel.secondsUntilNextExercise.collectAsState()
     val currentExercise by trainingViewModel.currentExercise.collectAsState()
 
     val inputImage by cameraViewModel.inputImage.collectAsStateWithLifecycle()
+    val poseDetectorActive by cameraViewModel.poseDetectorActive.collectAsStateWithLifecycle()
 
     // Get the current activity from LocalContext
     val activity = LocalContext.current as Activity
@@ -167,7 +175,7 @@ fun TrainingPlanScreen(
                     }
             ) {
                 MyCameraViewFinder()
-                if (poseResult != null && inputImage != null) {
+                if (poseResult != null && inputImage != null && poseDetectorActive) {
                     PoseOverlay(
                         poseResult!!.allPoseLandmarks,
                         inputImage!!.width,
@@ -181,7 +189,7 @@ fun TrainingPlanScreen(
                     verticalArrangement = Arrangement.Bottom,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (poseDetails.isNotEmpty()) {
+                    if (poseDetails.isNotEmpty() && poseDetectorActive) {
                         Text("Pose details: ${poseDetails[1]} \n${poseDetails[2]}\n${poseDetails[3]}")
                     }
                     Column(
@@ -191,13 +199,52 @@ fun TrainingPlanScreen(
                             .padding(8.dp)
                             .fillMaxWidth()
                     ) {
-                        Text(
-                            "Current exercise: ${exerciseDetails?.get(currentExercise)["exercise_name"]}\nNext exercise in ${secondsUntilNextExercise}s: ${
-                                exerciseDetails?.get(
-                                    currentExercise + 1
-                                )["exercise_name"]
-                            }"
-                        )
+                        if (exerciseDetails != null) {
+                            println(":DDD ${exerciseDetails!!.size},  $currentExercise, $exerciseDetails")
+                            Row(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    "Current exercise: ${exerciseDetails?.get(currentExercise)["exercise_name"]}\n" +
+                                            if (currentExercise < exerciseDetails!!.size - 1) {
+                                                trainingViewModel.enableButton()
+                                                "Next exercise in ${secondsUntilNextExercise}s: ${
+                                                    exerciseDetails?.get(
+                                                        if (currentExercise + 1 < exerciseDetails!!.size) {
+                                                            currentExercise + 1
+                                                        } else {
+                                                            0
+                                                        }
+                                                    )["exercise_name"]
+                                                }"
+                                            } else {
+                                                trainingViewModel.disableButton()
+                                                ""
+                                            }
+                                )
+                                if (exerciseDetails?.get(currentExercise)["exercise_name"] == "Push-ups" || exerciseDetails?.get(currentExercise)["exercise_name"] == "Squats") {
+                                    cameraViewModel.activatePoseDetector()
+                                } else {
+                                    cameraViewModel.closePoseDetector()
+                                }
+                                Column(
+                                    verticalArrangement = Arrangement.Top,
+                                    horizontalAlignment = Alignment.End,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            cameraViewModel.changeCamera()
+                                        }
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Cameraswitch,
+                                            contentDescription = "Switch camera icon indicating swapping between back and front camera"
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -205,42 +252,7 @@ fun TrainingPlanScreen(
                         ) {
                             IconButton(
                                 onClick = {
-                                    if (shouldIncrement && timerActive) {
-                                        if (secondsUntilNextExercise <= (selectedPlan.rest_time - 2)) {
-                                            trainingViewModel.skipExercise()
-                                        }
-                                    } else {
-                                        trainingViewModel.starTimer()
-                                    }
-                                    println(
-                                        "${currentExercise}, ${
-                                            exerciseDetails?.get(
-                                                currentExercise
-                                            )["set_rest_time"]
-                                        }, " +
-                                                "${exerciseDetails?.get(currentExercise)},"
-                                    )
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Default.PlayCircle,
-                                    contentDescription = "Start icon indicating starting the timer"
-                                )
-                            }
-                            /*
-                            IconButton(
-                                onClick = {
-                                    trainingViewModel.stopTimer()
-                                    println("xpdpf $poseDetails")
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Default.PauseCircleOutline,
-                                    contentDescription = "Pause icon indicating pausing the timer"
-                                )
-                            }*/
-                            IconButton(
-                                onClick = {
+                                    println(":DDDD")
                                     trainingViewModel.resetCurrentExercise()
                                 }
                             ) {
@@ -249,6 +261,85 @@ fun TrainingPlanScreen(
                                     contentDescription = "Restart icon indicating restarting the plan"
                                 )
                             }
+                            IconButton(
+                                onClick = {
+                                    trainingViewModel.previousExercise()
+                                },
+                                enabled = currentExercise != 0
+                            ) {
+                                Icon(
+                                    Icons.Default.SkipPrevious,
+                                    contentDescription = "Icon indicating going back to the previous exercise"
+                                )
+                            }
+                            if (shouldIncrement && timerActive) {
+                                IconButton(
+                                    onClick = {
+                                        trainingViewModel.stopTimer()
+                                        /*
+                                            if (secondsUntilNextExercise <= (selectedPlan.rest_time - 2)) {
+
+                                            }
+
+                                         */
+                                        println(
+                                            "${currentExercise}, ${
+                                                exerciseDetails?.get(
+                                                    currentExercise
+                                                )["set_rest_time"]
+                                            }, " +
+                                                    "${exerciseDetails?.get(currentExercise)},"
+                                        )
+                                    }
+                                ) {exerciseDetails!!.size
+                                    Icon(
+                                        Icons.Default.PauseCircle,
+                                        contentDescription = "Start icon indicating pausing the timer"
+                                    )
+                                }
+                            } else {
+                                IconButton(
+                                    onClick = {
+                                        trainingViewModel.starTimer()
+                                        println(
+                                            "${currentExercise}, ${
+                                                exerciseDetails?.get(
+                                                    currentExercise
+                                                )["set_rest_time"]
+                                            }, " +
+                                                    "${exerciseDetails?.get(currentExercise)},"
+                                        )
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Default.PlayCircle,
+                                        contentDescription = "Start icon indicating starting the timer"
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = {
+                                    trainingViewModel.skipExercise()
+                                },
+                                enabled = enabledButton
+                            ) {
+                                Icon(
+                                    Icons.Default.SkipNext,
+                                    contentDescription = "Icon indicating going to the next exercise"
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    trainingViewModel.changeCameraActiveValue()
+                                    trainingViewModel.resetCurrentExercise()
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.CloseFullscreen,
+                                    contentDescription = "Close fullscreen icon indicating closing the camera view"
+                                )
+                            }
+                            /*
                             Button(
                                 onClick = {
                                     trainingViewModel.changeCameraActiveValue()
@@ -257,16 +348,7 @@ fun TrainingPlanScreen(
                             ) {
                                 Text("Disable camera")
                             }
-                            IconButton(
-                                onClick = {
-                                    cameraViewModel.changeCamera()
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Default.Cameraswitch,
-                                    contentDescription = "Switch camera icon indicating swapping between back and front camera"
-                                )
-                            }
+                             */
                         }
                     }
                 }

@@ -66,6 +66,9 @@ class CameraViewModel @Inject constructor(
     private val _cameraSelection = MutableStateFlow<CameraSelector>(DEFAULT_FRONT_CAMERA)
     val cameraSelection: StateFlow<CameraSelector> = _cameraSelection.asStateFlow()
 
+    private val _poseDetectorActive = MutableStateFlow(false)
+    val poseDetectorActive: StateFlow<Boolean> = _poseDetectorActive.asStateFlow()
+
     private val _inputImage = MutableStateFlow<InputImage?>(null)
     val inputImage: StateFlow<InputImage?> = _inputImage.asStateFlow()
 
@@ -111,6 +114,14 @@ class CameraViewModel @Inject constructor(
         .build()
 
     val poseDetector = PoseDetectorProcessor(appContext, poseDetectorOptions)
+
+    fun activatePoseDetector() {
+        _poseDetectorActive.value = true
+    }
+
+    fun closePoseDetector() {
+        _poseDetectorActive.value = false
+    }
     /**
      * Binds camera to lifecycle using lifecycleOwner, default back or front camera, image analyzer, and a built camera preview
      * @param appContext context of the app to retrieve the camera preview
@@ -138,7 +149,7 @@ class CameraViewModel @Inject constructor(
                 // If the camera is showing and a frame can be accessed, processes the image using the pose detector
                 // Adds an onCompleteListener to the task to get the results of the detectInImage function
                 // Closes the imageProxy inside the onComplete listener as instructed in the guidelines of PoseDetection. Otherwise it would only detect a pose once and stop
-                if (image != null) {
+                if (image != null && _poseDetectorActive.value) {
                     val result = poseDetector.detectInImage(image)
                     result.addOnCompleteListener {
                         if (result.isSuccessful) {

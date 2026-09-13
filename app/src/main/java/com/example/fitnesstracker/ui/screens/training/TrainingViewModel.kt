@@ -48,6 +48,9 @@ class TrainingViewModel @Inject constructor(
     private val _timerActive = MutableStateFlow(false)
     val timerActive: StateFlow<Boolean> = _timerActive.asStateFlow()
 
+    private val _buttonEnabled = MutableStateFlow(false)
+    val buttonEnabled: StateFlow<Boolean> = _buttonEnabled.asStateFlow()
+
     private val _secondsUntilNextExercise = MutableStateFlow<Int>(0)
     val secondsUntilNextExercise: StateFlow<Int> = _secondsUntilNextExercise.asStateFlow()
 
@@ -134,8 +137,7 @@ class TrainingViewModel @Inject constructor(
                 if (_secondsUntilNextExercise.value == 0) {
                     incrementCurrentExercise()
                     addSecondsUntilNextExercise(_trainingPlan.value.rest_time)
-                    changeShouldIncrementValue(false)
-                    changeTimerActiveValue(false)
+                    stopTimer()
                 }
                 delay(1000)
             }
@@ -153,6 +155,12 @@ class TrainingViewModel @Inject constructor(
         addSecondsUntilNextExercise(_trainingPlan.value.rest_time)
     }
 
+    fun previousExercise() {
+        stopTimer()
+        addSecondsUntilNextExercise(_trainingPlan.value.rest_time)
+        decrementCurrentExercise()
+    }
+
     fun allowPermissions() {
         _hasPermissions.value = true
     }
@@ -162,7 +170,9 @@ class TrainingViewModel @Inject constructor(
     }
 
     fun countdownSecondsUntilNextExercise() {
-        _secondsUntilNextExercise.value--
+        if (_secondsUntilNextExercise.value > 0) {
+            _secondsUntilNextExercise.value--
+        }
     }
 
     fun addSecondsUntilNextExercise(seconds: Int) {
@@ -170,7 +180,15 @@ class TrainingViewModel @Inject constructor(
     }
 
     fun incrementCurrentExercise() {
-        _currentExercise.value++
+        if (_currentExercise.value < exerciseList.value!!.size) {
+            _currentExercise.value++
+        }
+    }
+
+    fun decrementCurrentExercise() {
+        if (_currentExercise.value > 0) {
+            _currentExercise.value--
+        }
     }
 
     fun resetCurrentExercise() {
@@ -185,6 +203,14 @@ class TrainingViewModel @Inject constructor(
 
     fun changeTimerActiveValue(newTimerActiveValue: Boolean) {
         _timerActive.value = newTimerActiveValue
+    }
+
+    fun disableButton() {
+        _buttonEnabled.value = false
+    }
+
+    fun enableButton() {
+        _buttonEnabled.value = true
     }
 
     // Functions related to database operations utilizing TrainingRepository.kt

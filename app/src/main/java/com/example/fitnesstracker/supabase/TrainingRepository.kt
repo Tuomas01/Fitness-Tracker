@@ -33,7 +33,7 @@ class TrainingRepositoryImpl @Inject constructor(
                 val result = postgrest.from("training_plans")
                     .select(columns = Columns.list("id, name, type, target_area, rest_time")).decodeList<TrainingPlan>()
                 Log.d(TAG, "getAllTrainingPlans() test: $result")
-                result
+                result.asReversed()
             }
         } catch (e: Exception) {
             Log.d(TAG, "getAllTrainingPlans() error: $e")
