@@ -66,6 +66,10 @@ public class RepetitionCounter {
     return numRepeats;
   }
 
+  public void ResetRepetitionCounter() {
+      numRepeats = 0;
+  }
+
   public String getClassName() {
     return className;
   }

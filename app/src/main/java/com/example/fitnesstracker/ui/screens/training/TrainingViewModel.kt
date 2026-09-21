@@ -42,9 +42,6 @@ class TrainingViewModel @Inject constructor(
     private val _cameraActive = MutableStateFlow(false)
     val cameraActive: StateFlow<Boolean> = _cameraActive.asStateFlow()
 
-    private val _shouldIncrement = MutableStateFlow(false)
-    val shouldIncrement: StateFlow<Boolean> = _shouldIncrement.asStateFlow()
-
     private val _timerActive = MutableStateFlow(false)
     val timerActive: StateFlow<Boolean> = _timerActive.asStateFlow()
 
@@ -129,7 +126,6 @@ class TrainingViewModel @Inject constructor(
     }
 
     fun starTimer() {
-        changeShouldIncrementValue(true)
         changeTimerActiveValue(true)
         viewModelScope.launch {
             while (_timerActive.value) {
@@ -145,7 +141,6 @@ class TrainingViewModel @Inject constructor(
     }
 
     fun stopTimer() {
-        changeShouldIncrementValue(false)
         changeTimerActiveValue(false)
     }
 
@@ -195,10 +190,6 @@ class TrainingViewModel @Inject constructor(
         stopTimer()
         _currentExercise.value = 0
         addSecondsUntilNextExercise(_trainingPlan.value.rest_time)
-    }
-
-    fun changeShouldIncrementValue(newShouldIncrementValue: Boolean) {
-        _shouldIncrement.value = newShouldIncrementValue
     }
 
     fun changeTimerActiveValue(newTimerActiveValue: Boolean) {

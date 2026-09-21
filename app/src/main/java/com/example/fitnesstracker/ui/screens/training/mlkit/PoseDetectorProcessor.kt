@@ -3,6 +3,7 @@ package com.example.fitnesstracker.ui.screens.training.mlkit
 import android.content.Context
 import android.util.Log
 import com.example.fitnesstracker.ui.screens.training.mlkit.classification.PoseClassifierProcessor
+import com.example.fitnesstracker.ui.screens.training.mlkit.classification.RepetitionCounter
 import com.google.android.gms.tasks.Task
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.Pose
@@ -34,6 +35,10 @@ class PoseDetectorProcessor(
 
     fun stop() {
         detector.close()
+    }
+
+    fun resetReps() {
+        poseClassifierProcessor?.resetCounter()
     }
 
     /**

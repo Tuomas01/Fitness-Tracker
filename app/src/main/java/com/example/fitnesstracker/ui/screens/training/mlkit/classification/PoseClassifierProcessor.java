@@ -76,6 +76,12 @@ public class PoseClassifierProcessor {
         loadPoseSamples(context);
     }
 
+    public void resetCounter() {
+        for (RepetitionCounter repCounter : repCounters) {
+            repCounter.ResetRepetitionCounter();
+        }
+    }
+
     private void loadPoseSamples(Context context) {
         List<PoseSample> poseSamples = new ArrayList<>();
         try {
@@ -135,7 +141,7 @@ public class PoseClassifierProcessor {
                     ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
                     tg.startTone(ToneGenerator.TONE_PROP_BEEP);
                     lastRepResult = String.format(
-                            Locale.US, "%s : %d reps", repCounter.getClassName(), repsAfter);
+                            Locale.US, "%d reps", repsAfter);
                     poseName = repCounter.getClassName();
                     finalReps = String.valueOf(repsAfter);
                     break;
@@ -152,8 +158,7 @@ public class PoseClassifierProcessor {
             String maxConfidenceClass = classification.getMaxConfidenceClass();
             String maxConfidenceClassResult = String.format(
                     Locale.US,
-                    "%s : %.2f confidence",
-                    maxConfidenceClass,
+                    "%.2f confidence",
                     classification.getClassConfidence(maxConfidenceClass)
                             / poseClassifier.confidenceRange());
             result.add(maxConfidenceClassResult);

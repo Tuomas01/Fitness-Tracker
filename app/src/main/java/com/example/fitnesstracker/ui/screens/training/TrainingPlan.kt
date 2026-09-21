@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -95,12 +96,11 @@ fun TrainingPlanScreen(
     // Boolean values from training viewmodel. The values are changed with change value functions in the view model
     val cameraActive by trainingViewModel.cameraActive.collectAsState()
     val hasPermissionsState by trainingViewModel.hasPermissions.collectAsState()
-    val shouldIncrement by trainingViewModel.shouldIncrement.collectAsState()
     val timerActive by trainingViewModel.timerActive.collectAsState()
     val enabledButton by trainingViewModel.buttonEnabled.collectAsState()
 
     val secondsUntilNextExercise by trainingViewModel.secondsUntilNextExercise.collectAsState()
-    val currentExercise by trainingViewModel.currentExercise.collectAsState()
+    val currentExerciseNumber by trainingViewModel.currentExercise.collectAsState()
 
     val inputImage by cameraViewModel.inputImage.collectAsStateWithLifecycle()
     val poseDetectorActive by cameraViewModel.poseDetectorActive.collectAsStateWithLifecycle()
@@ -122,6 +122,11 @@ fun TrainingPlanScreen(
 
     val screenWidth = remember { mutableFloatStateOf(1f) }
     val screenHeight = remember { mutableFloatStateOf(1f) }
+
+    val currentExercise = exerciseDetails?.get(currentExerciseNumber)
+    val currentExerciseName = currentExercise?.get("exercise_name")
+    val currentExerciseSetRestTime = currentExercise?.get("set_rest_time")
+    val currentExerciseReps = currentExercise?.get("reps")
 
     // This was causing the app to crash when navigating away from the training plan
     /*val exercise = Json.decodeFromString<CustomExercisePlans>(
@@ -189,8 +194,29 @@ fun TrainingPlanScreen(
                     verticalArrangement = Arrangement.Bottom,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (poseDetails.isNotEmpty() && poseDetectorActive) {
-                        Text("Pose details: ${poseDetails[1]} \n${poseDetails[2]}\n${poseDetails[3]}")
+                    if (!poseDetails.isNullOrEmpty() && poseDetectorActive) {
+                        val substringExerciseName = currentExerciseName.toString().substring(0, 4).lowercase()
+                        Text(
+                            modifier = Modifier.padding(16.dp, 8.dp),
+                            textAlign = TextAlign.Center,
+                            text =
+                                if (!poseDetails[1].isNullOrEmpty() && poseDetails[2].length > 3 && poseDetails[0].substring(0, 4).lowercase().contains(substringExerciseName)) {
+                                    if (poseDetails[1].toInt() == currentExerciseReps.toString().toInt()) {
+                                        if (currentExerciseNumber + 1 < exerciseDetails!!.size) {
+                                            trainingViewModel.starTimer()
+                                            cameraViewModel.closePoseDetector()
+                                            cameraViewModel.resetCounter()
+                                        } else {
+                                            cameraViewModel.closePoseDetector()
+                                            trainingViewModel.resetCurrentExercise()
+                                            cameraViewModel.resetCounter()
+                                        }
+                                    }
+                                    "\nDetected pose: ${poseDetails[0]}\n${poseDetails[2]}\n${poseDetails[3]}"
+                                } else {
+                                    "\nPose not detected or the detected pose does not match the current exercise"
+                                }
+                        )
                     }
                     Column(
                         modifier = Modifier
@@ -200,18 +226,17 @@ fun TrainingPlanScreen(
                             .fillMaxWidth()
                     ) {
                         if (exerciseDetails != null) {
-                            println(":DDD ${exerciseDetails!!.size},  $currentExercise, $exerciseDetails")
                             Row(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    "Current exercise: ${exerciseDetails?.get(currentExercise)["exercise_name"]}\n" +
-                                            if (currentExercise < exerciseDetails!!.size - 1) {
+                                    "Current exercise: ${currentExerciseName}\n" +
+                                            if (currentExerciseNumber < exerciseDetails!!.size - 1) {
                                                 trainingViewModel.enableButton()
                                                 "Next exercise in ${secondsUntilNextExercise}s: ${
                                                     exerciseDetails?.get(
-                                                        if (currentExercise + 1 < exerciseDetails!!.size) {
-                                                            currentExercise + 1
+                                                        if (currentExerciseNumber + 1 < exerciseDetails!!.size) {
+                                                            currentExerciseNumber + 1
                                                         } else {
                                                             0
                                                         }
@@ -222,7 +247,7 @@ fun TrainingPlanScreen(
                                                 ""
                                             }
                                 )
-                                if (exerciseDetails?.get(currentExercise)["exercise_name"] == "Push-ups" || exerciseDetails?.get(currentExercise)["exercise_name"] == "Squats") {
+                                if (currentExerciseName == "Push-ups" || currentExerciseName == "Squats") {
                                     cameraViewModel.activatePoseDetector()
                                 } else {
                                     cameraViewModel.closePoseDetector()
@@ -252,7 +277,6 @@ fun TrainingPlanScreen(
                         ) {
                             IconButton(
                                 onClick = {
-                                    println(":DDDD")
                                     trainingViewModel.resetCurrentExercise()
                                 }
                             ) {
@@ -265,33 +289,19 @@ fun TrainingPlanScreen(
                                 onClick = {
                                     trainingViewModel.previousExercise()
                                 },
-                                enabled = currentExercise != 0
+                                enabled = currentExerciseNumber != 0
                             ) {
                                 Icon(
                                     Icons.Default.SkipPrevious,
                                     contentDescription = "Icon indicating going back to the previous exercise"
                                 )
                             }
-                            if (shouldIncrement && timerActive) {
+                            if (timerActive) {
                                 IconButton(
                                     onClick = {
                                         trainingViewModel.stopTimer()
-                                        /*
-                                            if (secondsUntilNextExercise <= (selectedPlan.rest_time - 2)) {
-
-                                            }
-
-                                         */
-                                        println(
-                                            "${currentExercise}, ${
-                                                exerciseDetails?.get(
-                                                    currentExercise
-                                                )["set_rest_time"]
-                                            }, " +
-                                                    "${exerciseDetails?.get(currentExercise)},"
-                                        )
                                     }
-                                ) {exerciseDetails!!.size
+                                ) {
                                     Icon(
                                         Icons.Default.PauseCircle,
                                         contentDescription = "Start icon indicating pausing the timer"
@@ -301,14 +311,8 @@ fun TrainingPlanScreen(
                                 IconButton(
                                     onClick = {
                                         trainingViewModel.starTimer()
-                                        println(
-                                            "${currentExercise}, ${
-                                                exerciseDetails?.get(
-                                                    currentExercise
-                                                )["set_rest_time"]
-                                            }, " +
-                                                    "${exerciseDetails?.get(currentExercise)},"
-                                        )
+                                        println("Variable test: 1: $currentExerciseNumber, 2: $currentExerciseSetRestTime, 3: $currentExerciseName, 4: $currentExercise, 5: $currentExerciseReps, " +
+                                                "6: ${exerciseDetails!!.size}, 7: $exerciseDetails")
                                     }
                                 ) {
                                     Icon(
@@ -339,16 +343,6 @@ fun TrainingPlanScreen(
                                     contentDescription = "Close fullscreen icon indicating closing the camera view"
                                 )
                             }
-                            /*
-                            Button(
-                                onClick = {
-                                    trainingViewModel.changeCameraActiveValue()
-                                },
-                                modifier = Modifier.padding(8.dp)
-                            ) {
-                                Text("Disable camera")
-                            }
-                             */
                         }
                     }
                 }

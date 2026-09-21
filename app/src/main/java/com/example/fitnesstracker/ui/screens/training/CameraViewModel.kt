@@ -122,6 +122,10 @@ class CameraViewModel @Inject constructor(
     fun closePoseDetector() {
         _poseDetectorActive.value = false
     }
+
+    fun resetCounter() {
+        poseDetector.resetReps()
+    }
     /**
      * Binds camera to lifecycle using lifecycleOwner, default back or front camera, image analyzer, and a built camera preview
      * @param appContext context of the app to retrieve the camera preview
