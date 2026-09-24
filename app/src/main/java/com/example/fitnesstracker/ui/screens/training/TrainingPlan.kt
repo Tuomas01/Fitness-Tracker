@@ -181,13 +181,16 @@ fun TrainingPlanScreen(
             ) {
                 MyCameraViewFinder()
                 if (poseResult != null && inputImage != null && poseDetectorActive) {
-                    PoseOverlay(
-                        poseResult!!.allPoseLandmarks,
-                        inputImage!!.width,
-                        inputImage!!.height,
-                        screenWidth.floatValue + 450,
-                        screenHeight.floatValue - 475
-                    )
+                    val substringExerciseName = currentExerciseName.toString().substring(0, 4).lowercase()
+                    if (!poseDetails[1].isNullOrEmpty() && poseDetails[2].length > 3 && poseDetails[0].substring(0, 4).lowercase().contains(substringExerciseName)) {
+                        PoseOverlay(
+                            poseResult!!.allPoseLandmarks,
+                            inputImage!!.width,
+                            inputImage!!.height,
+                            screenWidth.floatValue + 450,
+                            screenHeight.floatValue - 475
+                        )
+                    }
                 }
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -201,7 +204,7 @@ fun TrainingPlanScreen(
                             textAlign = TextAlign.Center,
                             text =
                                 if (!poseDetails[1].isNullOrEmpty() && poseDetails[2].length > 3 && poseDetails[0].substring(0, 4).lowercase().contains(substringExerciseName)) {
-                                    if (poseDetails[1].toInt() == currentExerciseReps.toString().toInt()) {
+                                    if (poseDetails[1].toInt() == currentExerciseReps.toString().toInt() && !timerActive) {
                                         if (currentExerciseNumber + 1 < exerciseDetails!!.size) {
                                             trainingViewModel.starTimer()
                                             cameraViewModel.closePoseDetector()
@@ -247,7 +250,7 @@ fun TrainingPlanScreen(
                                                 ""
                                             }
                                 )
-                                if (currentExerciseName == "Push-ups" || currentExerciseName == "Squats") {
+                                if ((currentExerciseName == "Push-ups" || currentExerciseName == "Squats") && !timerActive) {
                                     cameraViewModel.activatePoseDetector()
                                 } else {
                                     cameraViewModel.closePoseDetector()
@@ -277,6 +280,7 @@ fun TrainingPlanScreen(
                         ) {
                             IconButton(
                                 onClick = {
+                                    cameraViewModel.resetCounter()
                                     trainingViewModel.resetCurrentExercise()
                                 }
                             ) {
@@ -288,6 +292,7 @@ fun TrainingPlanScreen(
                             IconButton(
                                 onClick = {
                                     trainingViewModel.previousExercise()
+                                    cameraViewModel.resetCounter()
                                 },
                                 enabled = currentExerciseNumber != 0
                             ) {
@@ -310,6 +315,7 @@ fun TrainingPlanScreen(
                             } else {
                                 IconButton(
                                     onClick = {
+                                        cameraViewModel.resetCounter()
                                         trainingViewModel.starTimer()
                                         println("Variable test: 1: $currentExerciseNumber, 2: $currentExerciseSetRestTime, 3: $currentExerciseName, 4: $currentExercise, 5: $currentExerciseReps, " +
                                                 "6: ${exerciseDetails!!.size}, 7: $exerciseDetails")
@@ -324,6 +330,7 @@ fun TrainingPlanScreen(
                             IconButton(
                                 onClick = {
                                     trainingViewModel.skipExercise()
+                                    cameraViewModel.resetCounter()
                                 },
                                 enabled = enabledButton
                             ) {
@@ -336,6 +343,7 @@ fun TrainingPlanScreen(
                                 onClick = {
                                     trainingViewModel.changeCameraActiveValue()
                                     trainingViewModel.resetCurrentExercise()
+                                    cameraViewModel.resetCounter()
                                 }
                             ) {
                                 Icon(
